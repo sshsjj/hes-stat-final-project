@@ -1,0 +1,182 @@
+---
+title: "STAT109 Final Project"
+author: "SASC"
+date: "May 11th, 2020"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+title: '1111'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#load library
+library(tidyverse)
+library(scales)
+library(ggthemes)
+library(kableExtra)
+library(plotly)
+library(readxl)
+# Data Import
+fifa_data <- read.csv("data.csv", header=TRUE)
+# Dimensions of the dataset
+dim(fifa_data)
+names(fifa_data)
+positions <- unique(fifa_data$Position)
+
+gk <- positions[str_detect(positions, "GK")]
+defs <- positions[str_detect(positions, "B$")]
+mids <- positions[str_detect(positions, "M$")]
+f1 <- positions[str_detect(positions, "F$")]
+f2 <- positions[str_detect(positions, "S$")]
+f3 <- positions[str_detect(positions, "T$")]
+f4 <- positions[str_detect(positions, "W$")]
+fwds <- c(f1, f2, f3, f4)
+
+fifa_data <- fifa_data %>%
+  mutate(ValueMultiplier = ifelse(str_detect(Value, "K"), 1000, ifelse(str_detect(Value, "M"), 1000000, 1))) %>%
+  mutate(ValueNumeric_pounds = as.numeric(str_extract(Value, "[[:digit:]]+\\.*[[:digit:]]*")) * ValueMultiplier) %>%
+  mutate(Position = ifelse(is.na(Position), "Unknown", Position))
+
+fifa_data <- fifa_data %>% 
+  mutate(PositionGroup = ifelse(Position %in% as.numeric(gk), "GK", ifelse(Position %in% as.numeric(defs), "DEF", ifelse(Position %in% as.numeric(mids), "MID", ifelse(Position %in% fwds, "FWD", "Unknown")))))
+
+# Keeping only the required columns
+player <- fifa_data[, c(8,22,45,49,50,52,54,47,42,44,40,38,34,35,33,36,32,55:88)]
+# Dimension of the final dataset
+dim(player)
+
+player[is.na(player)] <- 0
+
+
+```
+```{r}
+defs
+as.numeric(defs)
+```
+```{r}
+positions <- unique(fifa_data$Position)
+```
+
+```{r}
+head(fifa_data)
+
+head(fifa_data$Position)
+head(fifa_data$PositionGroup)
+```
+
+```{r}
+#install.packages("gridExtra")
+library("cluster") 
+#str(fifa)
+#convert factor to numeric
+fifa=player[,2:16]
+indx <- sapply(fifa, is.factor)
+fifa[indx] <- lapply(fifa[indx], function(x) as.numeric(as.character(x)))
+
+
+#pairs(fifa_pc$x,col = c(1:16)[fifa$position]) plot PCA Variance
+#plot(fifa_pc, type = "l", pch = 19, main = "All Positions: PCA Variance") 
+
+#plot posistions vs valuation
+
+
+a <- fifa_data %>%
+  filter(PositionGroup != "Unknown") %>%
+  ggplot(aes(x= PositionGroup, y= ValueNumeric_pounds)) +
+  geom_boxplot(fill = "darkgrey") +
+  scale_y_log10(labels = dollar_format(prefix = "eur")) +
+  ggtitle("Positions to Break The Piggybank", subtitle = "Attackers and midfielders bring the fans to games... \nPay them the money!") +
+  theme_fivethirtyeight()
+
+
+b <- fifa_data %>%
+  filter(PositionGroup != "Unknown") %>%
+  ggplot(aes(x= Position, y= ValueNumeric_pounds)) +
+  geom_boxplot(fill = "darkgrey") +
+  scale_y_log10(labels = dollar_format(prefix = "eur")) +
+  coord_flip() +
+  theme_fivethirtyeight() +
+  facet_wrap(~ PositionGroup, scales = "free") +
+  theme(strip.background = element_rect(fill = "darkgrey"), strip.text = element_text(colour = "white", face = "bold"))
+
+gridExtra::grid.arrange(a, b)
+
+#Normal Distribution 
+player %>%
+  ggplot(aes(x= Overall)) +
+  geom_histogram(color = "white", fill = "darkgrey") +
+  ggtitle("Player Ratings Are Normally Distributed") +
+  theme_fivethirtyeight() +
+  theme(axis.text.y = element_blank())
+
+```
+
+
+```{r}
+#???????????????
+player
+defender <- player[3:7]
+
+
+mid <- player[8:12]
+forward <- player[13:17]
+position<-c("defender","mid","forward")
+defender
+names(player)
+
+defender
+```
+```{r}
+#install.packages("varhandle")
+library("varhandle")
+##defender$LWB <- unfactor(defender$LWB)
+defender <- defender %>% 
+  mutate(LWB = str_replace(LWB, "\\+[0-9]", ''))  %>% 
+  mutate(RWB = str_replace(RWB, "\\+[0-9]", ''))  %>% 
+  mutate(LB = str_replace(LB, "\\+[0-9]", ''))  %>% 
+  mutate(CB = str_replace(CB, "\\+[0-9]", '')) %>% 
+  mutate(RB = str_replace(RB, "\\+[0-9]", ''))
+defender
+
+# TO-DO
+mid
+forward
+
+#data <- data.frame(lapply(defender$LWB, function(x) { str_replace_all(x, "+", "") }))
+
+#str_replace_all(defender$LWB,"+", " ")
+#str_replace_all('+', '', defender$LWB)
+#sapply(strsplit(defender$LWB,"+"), `[`, 2)
+
+#as.numeric(levels(defender$LWB))[defender$LWB]
+
+#kmean_test =kmeans(as.numeric(defender),centers=2,nstart=20)
+```
+```{r}
+defender <- defender %>% 
+  mutate(LWB = str_replace(LWB, "\\+[0-9]", ''))  %>% 
+  mutate(RWB = str_replace(RWB, "\\+[0-9]", ''))  %>% 
+  mutate(LB = str_replace(LB, "\\+[0-9]", ''))  %>% 
+  mutate(CB = str_replace(CB, "\\+[0-9]", '')) %>% 
+  mutate(RB = str_replace(RB, "\\+[0-9]", ''))
+defender
+```
+
+
+```{r}
+# Replace empty string in R
+#https://stackoverflow.com/questions/51449243/how-to-replace-empty-string-with-na-in-r-dataframe
+defender[defender==""]=0
+defender
+
+defender.kmean=kmeans(defender,centers=3,nstart=20)

@@ -48,7 +48,7 @@ fifa_data <- fifa_data %>%
   mutate(Position = ifelse(is.na(Position), "Unknown", Position))
 
 fifa_data <- fifa_data %>% 
-  mutate(PositionGroup = ifelse(Position %in% as.numeric(gk), "GK", ifelse(Position %in% as.numeric(defs), "DEF", ifelse(Position %in% as.numeric(mids), "MID", ifelse(Position %in% fwds, "FWD", "Unknown")))))
+  mutate(PositionGroup = ifelse(Position %in% as.numeric(gk), "GK", ifelse(Position %in% as.numeric(defs), "DEF", ifelse(Position %in% as.numeric(mids), "MID", ifelse(Position %in% as.numeric(fwds), "FWD", "Unknown")))))
 
 # Keeping only the required columns
 player <- fifa_data[, c(8,22,45,49,50,52,54,47,42,44,40,38,34,35,33,36,32,55:88)]
@@ -71,7 +71,7 @@ positions <- unique(fifa_data$Position)
 head(fifa_data)
 
 head(fifa_data$Position)
-head(fifa_data$PositionGroup)
+head(fifa_data$PositionGroup, 100)
 ```
 
 ```{r}
@@ -141,16 +141,15 @@ defender
 library("varhandle")
 ##defender$LWB <- unfactor(defender$LWB)
 defender <- defender %>% 
-  mutate(LWB = str_replace(LWB, "\\+[0-9]", ''))  %>% 
-  mutate(RWB = str_replace(RWB, "\\+[0-9]", ''))  %>% 
-  mutate(LB = str_replace(LB, "\\+[0-9]", ''))  %>% 
-  mutate(CB = str_replace(CB, "\\+[0-9]", '')) %>% 
-  mutate(RB = str_replace(RB, "\\+[0-9]", ''))
+  mutate(LWB = strtoi(str_replace(LWB, "\\+[0-9]", '')))  %>% 
+  mutate(RWB = strtoi(str_replace(RWB, "\\+[0-9]", '')))  %>% 
+  mutate(LB = strtoi(str_replace(LB, "\\+[0-9]", '')))  %>% 
+  mutate(CB = strtoi(str_replace(CB, "\\+[0-9]", ''))) %>% 
+  mutate(RB = strtoi(str_replace(RB, "\\+[0-9]", '')))
 defender
 
-# TO-DO
-mid
-forward
+defender[defender==""]=0
+
 
 #data <- data.frame(lapply(defender$LWB, function(x) { str_replace_all(x, "+", "") }))
 
@@ -162,21 +161,123 @@ forward
 
 #kmean_test =kmeans(as.numeric(defender),centers=2,nstart=20)
 ```
-```{r}
-defender <- defender %>% 
-  mutate(LWB = str_replace(LWB, "\\+[0-9]", ''))  %>% 
-  mutate(RWB = str_replace(RWB, "\\+[0-9]", ''))  %>% 
-  mutate(LB = str_replace(LB, "\\+[0-9]", ''))  %>% 
-  mutate(CB = str_replace(CB, "\\+[0-9]", '')) %>% 
-  mutate(RB = str_replace(RB, "\\+[0-9]", ''))
-defender
-```
 
 
 ```{r}
 # Replace empty string in R
 #https://stackoverflow.com/questions/51449243/how-to-replace-empty-string-with-na-in-r-dataframe
-defender[defender==""]=0
-defender
-
 defender.kmean=kmeans(defender,centers=3,nstart=20)
+index_d=which(defender.kmean$cluster==1)
+pairs(defender,col=c(1:3)[defender.kmean$cluster])
+print(defender.kmean)
+```
+
+
+```{r}
+library("varhandle")
+#player$LWB <- unfactor(defender$LWB)
+player <- player %>% 
+  mutate(LWB = strtoi(str_replace(LWB, "\\+[0-9]", '')))  %>% 
+  mutate(RWB = strtoi(str_replace(RWB, "\\+[0-9]", '')))  %>% 
+  mutate(LB = strtoi(str_replace(LB, "\\+[0-9]", '')))  %>% 
+  mutate(CB = strtoi(str_replace(CB, "\\+[0-9]", ''))) %>% 
+  mutate(RB = strtoi(str_replace(RB, "\\+[0-9]", ''))) %>% 
+  mutate(CDM = strtoi(str_replace(CDM, "\\+[0-9]", ''))) %>% 
+  mutate(CM = strtoi(str_replace(CM, "\\+[0-9]", ''))) %>% 
+  mutate(RM = strtoi(str_replace(RM, "\\+[0-9]", ''))) %>% 
+  mutate(LM = strtoi(str_replace(LM, "\\+[0-9]", ''))) %>% 
+  mutate(CAM = strtoi(str_replace(CAM, "\\+[0-9]", ''))) %>% 
+  mutate(CF = strtoi(str_replace(CF, "\\+[0-9]", ''))) %>% 
+  mutate(RF = strtoi(str_replace(RF, "\\+[0-9]", ''))) %>% 
+  mutate(LF = strtoi(str_replace(LF, "\\+[0-9]", ''))) %>% 
+  mutate(RW = strtoi(str_replace(RW, "\\+[0-9]", ''))) %>% 
+  mutate(LW = strtoi(str_replace(LW, "\\+[0-9]", '')))  
+
+player[is.na(player)]=0
+```
+
+```{r}
+
+player[is.na(player)]=0
+player$PositionGroup <- fifa_data$PositionGroup
+```
+
+
+```{r}
+player1 <- player
+# https://stackoverflow.com/questions/4605206/drop-data-frame-columns-by-name
+player1 <- subset(player1, select = -c(Position))
+player1$PositionGroup <- as.factor(player1$PositionGroup)
+player1
+```
+```{r}
+player1
+```
+
+```{r}
+unique(player1$PositionGroup)
+full = lm(Overall ~., data=player1)
+summary(full)
+
+fit = step(full, direction="backward",data=player1,trace =TRUE)
+```
+
+```{r}
+summary(fit)
+```
+
+
+```{r}
+install.packages("glmnet")
+library(glmnet)
+```
+
+\textcolor{mycolor}{We are going to find the best model using the stepwise method and the linear lasso model. For this purpose, we evaluate candidate models on randomly generated $n$-fold datasets each of which consists of 80\% training and 20\% test splits. For the evaluation purpose, we use the accuracy (the ratio of correct prediction) as the evaluation measure. We explain our approach in detail as follows:}
+
+
+Set a seed for replication and define how many splits we are going to use in the experiment
+```{r}
+set.seed(42)
+nfold = 10
+mydata <- player1
+```
+    
+2) \textcolor{mycolor}{Generate \texttt{nfold}-fold datasets.}
+
+```{r}
+    trains = list()
+    tests = list()
+    for(i in 1:nfold) {
+      sample_idx = sample.int(n = nrow(mydata),
+                              size = floor(.80*nrow(mydata)),
+                              replace=F)
+      trains[[i]] = mydata[sample_idx, ]
+      tests[[i]] = mydata[-sample_idx,]
+    }
+```
+
+3) \textcolor{mycolor}{Compute the average accuracy of the full model over the splits. The full model is used as a baseline.}
+
+```{r, warning=FALSE}
+    acc_full = 1:nfold
+    for(i in 1:nfold) {
+      fit.full = lm(Overall~., data=trains[[i]])
+      tpredict = round(predict(fit.full, newdata = tests[[i]], type='response'))
+      acc_full[i] = sum(diag(table(tests[[i]]$Overall, 
+                                   tpredict))) / nrow(tests[[i]])
+    }
+```
+
+4) \textcolor{mycolor}{The stepwise approach.}
+
+    - \textcolor{mycolor}{Using \texttt{step()}, find formula candidates from the datasets. For this purpose, we run \texttt{step()} on each split.}
+    
+```{r, warning=FALSE}
+        formulae_all = list()
+        for(i in 1:nfold) {
+          formulae_all[[i]] = formula(step(lm(Overall~., 
+                                               data=trains[[i]]), trace=F))
+        }
+        formulae = unique(formulae_all)
+        print(formulae)
+```

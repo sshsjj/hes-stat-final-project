@@ -1,0 +1,62 @@
+[[1]]
+Overall ~ LWB + CB + CDM + RM + CAM + CF + RW + Crossing + HeadingAccuracy + 
+    ShortPassing + Volleys + Dribbling + FKAccuracy + LongPassing + 
+    BallControl + Acceleration + SprintSpeed + Reactions + Balance + 
+    ShotPower + Jumping + Stamina + Strength + LongShots + Aggression + 
+    Interceptions + Positioning + Vision + Penalties + Composure + 
+    Marking + StandingTackle + SlidingTackle + GKDiving + GKHandling + 
+    GKKicking + GKPositioning + GKReflexes + PositionGroup
+
+[[2]]
+Overall ~ LWB + CB + CDM + CAM + CF + RW + Crossing + HeadingAccuracy + 
+    ShortPassing + Volleys + Dribbling + FKAccuracy + LongPassing + 
+    BallControl + Acceleration + Reactions + Balance + ShotPower + 
+    Stamina + Strength + LongShots + Aggression + Interceptions + 
+    Positioning + Vision + Penalties + Composure + Marking + 
+    StandingTackle + SlidingTackle + GKDiving + GKHandling + 
+    GKKicking + GKPositioning + GKReflexes + PositionGroup
+
+[[3]]
+Overall ~ LWB + CB + CDM + RM + CAM + CF + RW + Crossing + HeadingAccuracy + 
+    ShortPassing + Volleys + Dribbling + FKAccuracy + LongPassing + 
+    BallControl + Acceleration + Reactions + Balance + ShotPower + 
+    Jumping + Stamina + Strength + LongShots + Aggression + Interceptions + 
+    Positioning + Vision + Penalties + Composure + Marking + 
+    StandingTackle + SlidingTackle + GKDiving + GKHandling + 
+    GKKicking + GKPositioning + GKReflexes + PositionGroup
+
+[[4]]
+Overall ~ LWB + CB + CDM + RM + CAM + CF + RW + Crossing + Finishing + 
+    HeadingAccuracy + ShortPassing + Volleys + Dribbling + FKAccuracy + 
+    LongPassing + BallControl + Acceleration + Reactions + Balance + 
+    ShotPower + Stamina + Strength + LongShots + Aggression + 
+    Interceptions + Positioning + Vision + Penalties + Composure + 
+    Marking + StandingTackle + SlidingTackle + GKDiving + GKHandling + 
+    GKKicking + GKPositioning + GKReflexes + PositionGroup
+
+[[5]]
+Overall ~ CB + CDM + RM + CAM + CF + RW + Crossing + HeadingAccuracy + 
+    ShortPassing + Volleys + Dribbling + FKAccuracy + LongPassing + 
+    BallControl + Acceleration + Reactions + Balance + ShotPower + 
+    Stamina + Strength + LongShots + Aggression + Interceptions + 
+    Positioning + Vision + Penalties + Composure + Marking + 
+    StandingTackle + SlidingTackle + GKDiving + GKHandling + 
+    GKKicking + GKPositioning + GKReflexes + PositionGroup
+
+[[6]]
+Overall ~ LWB + LB + CB + CDM + RM + CAM + CF + RW + Crossing + 
+    HeadingAccuracy + ShortPassing + Volleys + Dribbling + FKAccuracy + 
+    LongPassing + BallControl + Acceleration + SprintSpeed + 
+    Reactions + Balance + ShotPower + Stamina + Strength + LongShots + 
+    Aggression + Interceptions + Positioning + Vision + Penalties + 
+    Composure + Marking + StandingTackle + SlidingTackle + GKDiving + 
+    GKHandling + GKKicking + GKPositioning + GKReflexes + PositionGroup
+
+[[7]]
+Overall ~ CB + CDM + RM + CAM + CF + RW + Crossing + HeadingAccuracy + 
+    ShortPassing + Volleys + Dribbling + FKAccuracy + LongPassing + 
+    BallControl + Acceleration + Reactions + Balance + ShotPower + 
+    Jumping + Stamina + Strength + LongShots + Aggression + Interceptions + 
+    Positioning + Vision + Penalties + Composure + Marking + 
+    StandingTackle + SlidingTackle + GKDiving + GKHandling + 
+    GKKicking + GKPositioning + GKReflexes + PositionGroup

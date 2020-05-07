@@ -50,15 +50,22 @@ fifa_data <- fifa_data %>%
 fifa_data <- fifa_data %>% 
   mutate(PositionGroup = ifelse(Position %in% as.numeric(gk), "GK", ifelse(Position %in% as.numeric(defs), "DEF", ifelse(Position %in% as.numeric(mids), "MID", ifelse(Position %in% as.numeric(fwds), "FWD", "Unknown")))))
 
+names(fifa_data)
+
+
 # Keeping only the required columns
-player <- fifa_data[, c(8,22,45,49,50,52,54,47,42,44,40,38,34,35,33,36,32,55:88)]
+player <- fifa_data[, c(91, 8, 9, 16, 22,45,49,50,52,54,47,42,44,40,38,34,35,33,36,32,55:88)]
 # Dimension of the final dataset
 dim(player)
 
-player[is.na(player)] <- 0
+# player[is.na(player)] <- 0
 
-
+names(player)
 ```
+```{r}
+player
+```
+
 ```{r}
 defs
 as.numeric(defs)
@@ -140,16 +147,16 @@ defender
 #install.packages("varhandle")
 library("varhandle")
 ##defender$LWB <- unfactor(defender$LWB)
+defender <- player[3:7]
 defender <- defender %>% 
   mutate(LWB = strtoi(str_replace(LWB, "\\+[0-9]", '')))  %>% 
   mutate(RWB = strtoi(str_replace(RWB, "\\+[0-9]", '')))  %>% 
   mutate(LB = strtoi(str_replace(LB, "\\+[0-9]", '')))  %>% 
   mutate(CB = strtoi(str_replace(CB, "\\+[0-9]", ''))) %>% 
   mutate(RB = strtoi(str_replace(RB, "\\+[0-9]", '')))
+
+defender<- na.omit(defender)
 defender
-
-defender[defender==""]=0
-
 
 #data <- data.frame(lapply(defender$LWB, function(x) { str_replace_all(x, "+", "") }))
 
@@ -159,7 +166,66 @@ defender[defender==""]=0
 
 #as.numeric(levels(defender$LWB))[defender$LWB]
 
-#kmean_test =kmeans(as.numeric(defender),centers=2,nstart=20)
+
+```
+```{r}
+defender.kmean = kmeans(defender, centers = 5, nstart=20)
+str(defender.kmean)
+#install.packages("factoextra")
+library(factoextra)
+fviz_cluster(defender.kmean, data=defender)
+
+#mid.kmean = kmeans (mid, centers = 3, nstart=20)
+#index_m = which (mid.kmean$cluster ==1) 
+#forward.kmean = kmeans (forward, centers = 3, nstart=20) 
+#index_f = which (forward.kmean$cluster ==1) 
+```
+
+
+```{r}
+set.seed(10)
+fviz_nbclust(defender, kmeans, method = "wss")
+```
+
+
+
+
+```{r}
+names(mid)
+names(forward)
+```
+
+```{r}
+mid <- player[8:12]
+mid <- mid %>% 
+  mutate(CDM = strtoi(str_replace(CDM, "\\+[0-9]", '')))  %>% 
+  mutate(CM = strtoi(str_replace(CM, "\\+[0-9]", '')))  %>% 
+  mutate(RM = strtoi(str_replace(RM, "\\+[0-9]", '')))  %>% 
+  mutate(LM = strtoi(str_replace(LM, "\\+[0-9]", ''))) %>% 
+  mutate(CAM = strtoi(str_replace(CAM, "\\+[0-9]", '')))
+
+mid = na.omit(mid)
+```
+
+```{r}
+mid.kmean = kmeans(mid, centers = 3, nstart=20)
+str(mid.kmean)
+#install.packages("factoextra")
+library(factoextra)
+fviz_cluster(mid.kmean, data=mid)
+index_m = which (mid.kmean$cluster ==1) 
+#pairs(mid,col=c(1:3)[mid.kmean$cluster])
+```
+
+
+
+
+
+
+
+```{r}
+subset(fifa_data,select= c(8,9,10,37:43))
+unique(fifa_data[10])
 ```
 
 
@@ -174,8 +240,14 @@ print(defender.kmean)
 
 
 ```{r}
+names(player)
+```
+
+
+```{r}
 library("varhandle")
 #player$LWB <- unfactor(defender$LWB)
+
 player <- player %>% 
   mutate(LWB = strtoi(str_replace(LWB, "\\+[0-9]", '')))  %>% 
   mutate(RWB = strtoi(str_replace(RWB, "\\+[0-9]", '')))  %>% 
@@ -194,6 +266,11 @@ player <- player %>%
   mutate(LW = strtoi(str_replace(LW, "\\+[0-9]", '')))  
 
 player[is.na(player)]=0
+
+```
+
+```{r}
+player
 ```
 
 ```{r}
@@ -202,33 +279,53 @@ player[is.na(player)]=0
 player$PositionGroup <- fifa_data$PositionGroup
 ```
 
+```{r}
+my.vector = c(3:10,17:51)
+player[, my.vector]
+```
+
 
 ```{r}
+
+
+
 player1 <- player
 # https://stackoverflow.com/questions/4605206/drop-data-frame-columns-by-name
 player1 <- subset(player1, select = -c(Position))
 player1$PositionGroup <- as.factor(player1$PositionGroup)
 player1
 ```
+
 ```{r}
-player1
+names(player1)
 ```
 
 ```{r}
 unique(player1$PositionGroup)
-full = lm(Overall ~., data=player1)
+full = lm(ValueNumeric_pounds ~.-LWB-RWB-LB-CB-RB-CDM-CM-RM-LM-CAM-CF-RF-LF-RW-LW, data=player1)
 summary(full)
 
-fit = step(full, direction="backward",data=player1,trace =TRUE)
+fit = step(full, direction="backward",data=subset(player1),trace =FALSE)
 ```
 
 ```{r}
 summary(fit)
 ```
 
+Lets do VIF
+```{r}
+#install.packages("car")
+car::vif(fit)
+```
 
 ```{r}
-install.packages("glmnet")
+plot(fit)
+```
+
+
+
+```{r}
+#install.packages("glmnet")
 library(glmnet)
 ```
 
@@ -240,6 +337,148 @@ Set a seed for replication and define how many splits we are going to use in the
 set.seed(42)
 nfold = 10
 mydata <- player1
+```
+    
+2) \textcolor{mycolor}{Generate \texttt{nfold}-fold datasets.}
+
+```{r}
+    trains = list()
+    tests = list()
+    for(i in 1:nfold) {
+      sample_idx = sample.int(n = nrow(mydata),
+                              size = floor(.80*nrow(mydata)),
+                              replace=F)
+      trains[[i]] = mydata[sample_idx, ]
+      tests[[i]] = mydata[-sample_idx,]
+    }
+```
+
+3) \textcolor{mycolor}{Compute the average accuracy of the full model over the splits. The full model is used as a baseline.}
+
+```{r, warning=FALSE}
+    acc_full = 1:nfold
+    for(i in 1:nfold) {
+      fit.full = lm(ValueNumeric_pounds~., data=trains[[i]])
+      tpredict = round(predict(fit.full, newdata = tests[[i]], type='response'))
+      acc_full[i] = sum(diag(table(tests[[i]]$ValueNumeric_pounds, 
+                                   tpredict))) / nrow(tests[[i]])
+    }
+```
+
+4) \textcolor{mycolor}{The stepwise approach.}
+
+    - \textcolor{mycolor}{Using \texttt{step()}, find formula candidates from the datasets. For this purpose, we run \texttt{step()} on each split.}
+    
+```{r, warning=FALSE}
+        formulae_all = list()
+        for(i in 1:nfold) {
+          formulae_all[[i]] = formula(step(lm(ValueNumeric_pounds~., 
+                                               data=trains[[i]]), trace=F))
+        }
+        formulae = unique(formulae_all)
+        print(formulae)
+```
+
+
+- \textcolor{mycolor}{Among the formula candidates, we find the best model by the cross-valudation.}
+        
+```{r, warning=FALSE}
+        acc = rep(0, length(formulae))
+        for(i in 1:nfold) {
+          for(model_i in 1:length(formulae)) {
+            fit.candidate = glm(formulae[[model_i]], 
+                                data= trains[[i]], family=gaussian)
+            tpredict = round(predict(fit.candidate, 
+                                     newdata = tests[[i]], type='response'))
+            acc[model_i] = acc[model_i] + 
+              sum(diag(table(tests[[i]]$ValueNumeric_pounds, tpredict))) / nrow(tests[[i]])
+          }
+        }
+        best_model_idx = which.max(acc)
+        cat('Best model formula : ')
+        formulae[best_model_idx]
+        
+        acc_final_model = 1:nfold
+        for(i in 1:nfold) {
+          fit.candidate = glm(formulae[[best_model_idx]], 
+                              data= trains[[i]], family=gaussian)
+          tpredict = round(predict(fit.candidate, newdata = tests[[i]],
+                           type='response'))
+          acc_final_model[i] = sum(diag(table(tests[[i]]$ValueNumeric_pounds, 
+                                              tpredict))) / nrow(tests[[i]])
+        }
+```
+
+
+
+
+
+5) \textcolor{mycolor}{Linear lasso. We optimize the Linear regression with the $L_1$-norm penelty (lasso).}
+    ```{r, warning=FALSE}
+    acc_lasso = 1:nfold
+    for(i in 1:nfold) {
+      x = model.matrix(Overall~.-Overall, trains[[i]])[, -1]
+      y = trains[[i]]$Overall
+      cv.lasso <- cv.glmnet(x, y, alpha = 1, family = "gaussian")
+      fit.lasso = glmnet(x, y, alpha = 1, family = "gaussian",
+                         lambda = cv.lasso$lambda.min)
+      x.test = model.matrix(Overall~.-Overall, tests[[i]])[, -1]
+      
+      tpredict = round(predict(fit.lasso, newx=x.test,
+                               type='response'))
+      acc_lasso[i] = sum(diag(table(tests[[i]]$Overall, 
+                                          tpredict))) / nrow(tests[[i]])
+    }
+    ```
+
+
+
+6) \textcolor{mycolor}{Compare the accuracies among the full model, the stepwise model, and the Linear lasso.}
+    ```{r}
+    cat('Stepwise model average accuracy = ', 
+        sprintf('%.5f', mean(acc_final_model)), '\n')
+    cat('   Lasso model average accuracy = ',
+        sprintf('%.5f', mean(acc_lasso)), '\n')
+    cat('    Full model average accuracy = ', 
+        sprintf('%.5f', mean(acc_full)), '\n')
+
+    # stepwise model
+    plot(1:nfold, acc_final_model, "l", col="red",
+         xlab="splits", ylab="accuracy", 
+         main="stepwise model vs lasso model vs full model",
+         ylim=c(0, 1))
+    points(1:nfold, acc_final_model, col="red")
+    
+    # full model
+    lines(1:nfold, acc_full, col="blue", lty=2)
+    points(1:nfold, acc_full, col="blue")
+    
+    # lasso model
+    lines(1:nfold, acc_lasso, col="black", lty=3)
+    points(1:nfold, acc_lasso, col="black")
+    
+    legend('topright', legend=c('stepwise model', 'lasso model', 'full model'), 
+           col=c('red', 'black', 'blue'), lty=c(1, 3, 2), pch=10, cex=0.6)
+  
+    ```
+    
+From the above experiment, we found that the model from the stepwise approach performed the best. Therefore, we suggest the final model as follows:
+ -------------------------
+ 
+ Get rid of positions
+ -------------------------
+
+Set a seed for replication and define how many splits we are going to use in the experiment
+
+
+```{r}
+player1[2:16]
+```
+
+```{r}
+set.seed(42)
+nfold = 10
+mydata <- subset(player1,select= c(1, 17:51))
 ```
     
 2) \textcolor{mycolor}{Generate \texttt{nfold}-fold datasets.}
@@ -281,3 +520,85 @@ mydata <- player1
         formulae = unique(formulae_all)
         print(formulae)
 ```
+
+- \textcolor{mycolor}{Among the formula candidates, we find the best model by the cross-valudation.}
+        
+```{r, warning=FALSE}
+        acc = rep(0, length(formulae))
+        for(i in 1:nfold) {
+          for(model_i in 1:length(formulae)) {
+            fit.candidate = glm(formulae[[model_i]], 
+                                data= trains[[i]], family=gaussian)
+            tpredict = round(predict(fit.candidate, 
+                                     newdata = tests[[i]], type='response'))
+            acc[model_i] = acc[model_i] + 
+              sum(diag(table(tests[[i]]$Overall, tpredict))) / nrow(tests[[i]])
+          }
+        }
+        best_model_idx = which.max(acc)
+        cat('Best model formula : ')
+        formulae[best_model_idx]
+        
+        acc_final_model = 1:nfold
+        for(i in 1:nfold) {
+          fit.candidate = glm(formulae[[best_model_idx]], 
+                              data= trains[[i]], family=gaussian)
+          tpredict = round(predict(fit.candidate, newdata = tests[[i]],
+                           type='response'))
+          acc_final_model[i] = sum(diag(table(tests[[i]]$Overall, 
+                                              tpredict))) / nrow(tests[[i]])
+        }
+```
+
+
+
+
+
+5) \textcolor{mycolor}{Linear lasso. We optimize the Linear regression with the $L_1$-norm penelty (lasso).}
+    ```{r, warning=FALSE}
+    acc_lasso = 1:nfold
+    for(i in 1:nfold) {
+      x = model.matrix(Overall~.-Overall, trains[[i]])[, -1]
+      y = trains[[i]]$Overall
+      cv.lasso <- cv.glmnet(x, y, alpha = 1, family = "gaussian")
+      fit.lasso = glmnet(x, y, alpha = 1, family = "gaussian",
+                         lambda = cv.lasso$lambda.min)
+      x.test = model.matrix(Overall~.-Overall, tests[[i]])[, -1]
+      
+      tpredict = round(predict(fit.lasso, newx=x.test,
+                               type='response'))
+      acc_lasso[i] = sum(diag(table(tests[[i]]$Overall, 
+                                          tpredict))) / nrow(tests[[i]])
+    }
+    ```
+
+
+
+6) \textcolor{mycolor}{Compare the accuracies among the full model, the stepwise model, and the Linear lasso.}
+    ```{r}
+    cat('Stepwise model average accuracy = ', 
+        sprintf('%.5f', mean(acc_final_model)), '\n')
+    cat('   Lasso model average accuracy = ',
+        sprintf('%.5f', mean(acc_lasso)), '\n')
+    cat('    Full model average accuracy = ', 
+        sprintf('%.5f', mean(acc_full)), '\n')
+
+    # stepwise model
+    plot(1:nfold, acc_final_model, "l", col="red",
+         xlab="splits", ylab="accuracy", 
+         main="stepwise model vs lasso model vs full model",
+         ylim=c(0, 1))
+    points(1:nfold, acc_final_model, col="red")
+    
+    # full model
+    lines(1:nfold, acc_full, col="blue", lty=2)
+    points(1:nfold, acc_full, col="blue")
+    
+    # lasso model
+    lines(1:nfold, acc_lasso, col="black", lty=3)
+    points(1:nfold, acc_lasso, col="black")
+    
+    legend('topright', legend=c('stepwise model', 'lasso model', 'full model'), 
+           col=c('red', 'black', 'blue'), lty=c(1, 3, 2), pch=10, cex=0.6)
+  
+    ```

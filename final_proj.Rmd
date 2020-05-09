@@ -17,6 +17,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+original_data<- read.csv("data.csv", header=TRUE)
+```
+
 
 ```{r}
 #load library
@@ -42,9 +46,14 @@ f3 <- positions[str_detect(positions, "T$")]
 f4 <- positions[str_detect(positions, "W$")]
 fwds <- c(f1, f2, f3, f4)
 
+# Convert Value, Release.Clause, 
 fifa_data <- fifa_data %>%
   mutate(ValueMultiplier = ifelse(str_detect(Value, "K"), 1000, ifelse(str_detect(Value, "M"), 1000000, 1))) %>%
   mutate(ValueNumeric_pounds = as.numeric(str_extract(Value, "[[:digit:]]+\\.*[[:digit:]]*")) * ValueMultiplier) %>%
+  mutate(WageMultiplier = ifelse(str_detect(Wage, "K"), 1000, ifelse(str_detect(Wage, "M"), 1000000, 1))) %>%
+  mutate(WageNumeric_pounds = as.numeric(str_extract(Wage, "[[:digit:]]+\\.*[[:digit:]]*")) * WageMultiplier) %>%
+  mutate(ReleaseMultiplier = ifelse(str_detect(Release.Clause, "K"), 1000, ifelse(str_detect(Release.Clause, "M"), 1000000, 1))) %>%
+  mutate(Release.Clause_pounds = as.numeric(str_extract(Release.Clause, "[[:digit:]]+\\.*[[:digit:]]*")) * ReleaseMultiplier) %>%
   mutate(Position = ifelse(is.na(Position), "Unknown", Position))
 
 fifa_data <- fifa_data %>% 
@@ -53,88 +62,37 @@ fifa_data <- fifa_data %>%
 names(fifa_data)
 
 
-# Keeping only the required columns
-player <- fifa_data[, c(91, 8, 9, 16, 22, 45,49,50,52,54,47,42,44,40,38,34,35,33,36,32,55:88)]
+# Keeping only the required columns added Skill.Moves + Release.Clause + Wage
+player <- fifa_data[, c(91, 8, 9, 16, 18, 22, 45, 49, 50, 52, 54, 47, 42, 44, 40, 38, 34, 35, 33, 36, 32, 55:88, 93, 95, 96)]
 # Dimension of the final dataset
 dim(player)
-
-# player[is.na(player)] <- 0
-
 names(player)
 ```
 ```{r}
-player
+mean(player[player$PositionGroup == "FWD", ]$ValueNumeric_pounds)
+mean(player[player$PositionGroup == "DEF", ]$ValueNumeric_pounds)
+mean(player[player$PositionGroup == "MID", ]$ValueNumeric_pounds)
 ```
 
+
 ```{r}
-defs
-as.numeric(defs)
+
 ```
+
+
+
+
 ```{r}
+as.numeric(defs)
 positions <- unique(fifa_data$Position)
 ```
 
-```{r}
-head(fifa_data)
 
-head(fifa_data$Position)
-head(fifa_data$PositionGroup, 100)
-```
-
-```{r}
-#install.packages("gridExtra")
-library("cluster") 
-#str(fifa)
-#convert factor to numeric
-fifa=player[,2:16]
-indx <- sapply(fifa, is.factor)
-fifa[indx] <- lapply(fifa[indx], function(x) as.numeric(as.character(x)))
-
-
-#pairs(fifa_pc$x,col = c(1:16)[fifa$position]) plot PCA Variance
-#plot(fifa_pc, type = "l", pch = 19, main = "All Positions: PCA Variance") 
-
-#plot posistions vs valuation
-
-
-a <- fifa_data %>%
-  filter(PositionGroup != "Unknown") %>%
-  ggplot(aes(x= PositionGroup, y= ValueNumeric_pounds)) +
-  geom_boxplot(fill = "darkgrey") +
-  scale_y_log10(labels = dollar_format(prefix = "eur")) +
-  ggtitle("Positions to Break The Piggybank", subtitle = "Attackers and midfielders bring the fans to games... \nPay them the money!") +
-  theme_fivethirtyeight()
-
-
-b <- fifa_data %>%
-  filter(PositionGroup != "Unknown") %>%
-  ggplot(aes(x= Position, y= ValueNumeric_pounds)) +
-  geom_boxplot(fill = "darkgrey") +
-  scale_y_log10(labels = dollar_format(prefix = "eur")) +
-  coord_flip() +
-  theme_fivethirtyeight() +
-  facet_wrap(~ PositionGroup, scales = "free") +
-  theme(strip.background = element_rect(fill = "darkgrey"), strip.text = element_text(colour = "white", face = "bold"))
-
-gridExtra::grid.arrange(a, b)
-
-#Normal Distribution 
-player %>%
-  ggplot(aes(x= Overall)) +
-  geom_histogram(color = "white", fill = "darkgrey") +
-  ggtitle("Player Ratings Are Normally Distributed") +
-  theme_fivethirtyeight() +
-  theme(axis.text.y = element_blank())
-
-```
-
-
+---------------- For Kmeans START------------------
 ```{r}
 #???????????????
 player
 defender <- player[3:7]
-
-
 mid <- player[8:12]
 forward <- player[13:17]
 position<-c("defender","mid","forward")
@@ -165,8 +123,6 @@ defender
 #sapply(strsplit(defender$LWB,"+"), `[`, 2)
 
 #as.numeric(levels(defender$LWB))[defender$LWB]
-
-
 ```
 ```{r}
 defender.kmean = kmeans(defender, centers = 5, nstart=20)
@@ -185,12 +141,6 @@ fviz_cluster(defender.kmean, data=defender)
 ```{r}
 set.seed(10)
 fviz_nbclust(defender, kmeans, method = "wss")
-```
-
-
-
-
-```{r}
 names(mid)
 names(forward)
 ```
@@ -218,11 +168,6 @@ index_m = which (mid.kmean$cluster ==1)
 ```
 
 
-
-
-
-
-
 ```{r}
 subset(fifa_data,select= c(8,9,10,37:43))
 unique(fifa_data[10])
@@ -238,11 +183,7 @@ pairs(defender,col=c(1:3)[defender.kmean$cluster])
 print(defender.kmean)
 ```
 
-
-```{r}
-names(player)
-```
-
+---------------- For Kmeans END-------------------
 
 ```{r}
 library("varhandle")
@@ -265,33 +206,21 @@ player <- player %>%
   mutate(RW = strtoi(str_replace(RW, "\\+[0-9]", ''))) %>% 
   mutate(LW = strtoi(str_replace(LW, "\\+[0-9]", '')))  
 
-player[is.na(player)]=0
+#player[is.na(player)]=0
 
+player <- na.omit(player)  # Removing GK
 ```
 
 ```{r}
 player
 ```
 
-```{r}
-
-player[is.na(player)]=0
-player$PositionGroup <- fifa_data$PositionGroup
-```
 
 ```{r}
-my.vector = c(3:10,17:51)
-player[, my.vector]
-```
-
-
-```{r}
-
-
-
 player1 <- player
 # https://stackoverflow.com/questions/4605206/drop-data-frame-columns-by-name
 player1 <- subset(player1, select = -c(Position))
+player1_without_PositionGroup <- subset(player1, select = -c(PositionGroup))
 player1$PositionGroup <- as.factor(player1$PositionGroup)
 player1
 ```
@@ -300,37 +229,80 @@ player1
 names(player1)
 ```
 
+Based on our assumaption, we thought Wage and Release.clause are super significant. 
+How important Wage and Release take in this model? Without Wage and Release:
 ```{r}
-unique(player1$PositionGroup)
-reduce_all_pos_fit = lm(ValueNumeric_pounds ~.-LWB-RWB-LB-CB-RB-CDM-CM-RM-LM-CAM-CF-RF-LF-RW-LW, data=player1)
-full = lm(ValueNumeric_pounds ~., data=player1)
+player1 <- player
+full_fit = lm(ValueNumeric_pounds ~.-WageNumeric_pounds-Release.Clause_pounds, data=player1)
+summary(full_fit)
+plot(full_fit)
+```
+
+
+Full model with Original Data
+```{r}
+player1 <- player
+full_fit = lm(ValueNumeric_pounds ~., data=player1)
+player1
+summary(full_fit)
+plot(full_fit)
+```
+
+
+
+Not doing it--- Scaling on the final data ----
+```{r}
+# player1_final <- as.data.frame(scale(subset(player1, select = -c(PositionGroup))))
+
+# ---- SCALING ----
+player_data <- subset(player1, select = -c(PositionGroup))
+# calculate the pre-process parameters from the dataset
+preprocessParams <- preProcess(player_data, method=c("range"))
+preprocessParams
+# summarize transform parameters
+print(preprocessParams)
+# transform the dataset using the parameters
+data_scaled <- predict(preprocessParams, player_data) + c(0.0000001)
+# summarize the transformed dataset
+for(i in 1:ncol(player_data))
+  data_scaled[is.na(data_scaled[,i]), i] <- mean(data_scaled[,i], na.rm = TRUE)
+  data_scaled[is.infinite(data_scaled[,i]), i] <- mean(data_scaled[,i], na.rm = TRUE)
+
+player1_final <- data_scaled
+
+reduce_all_pos_fit = lm(ValueNumeric_pounds ~.-LWB-RWB-LB-CB-RB-CDM-CM-RM-LM-CAM-CF-RF-LF-RW-LW, data=player1_final)
+full = lm(ValueNumeric_pounds ~., data=player1_final)
 summary(full)
 # get rid of aliased coefficients 
-reduce_na_fit = lm(ValueNumeric_pounds ~.-RWB-RB-LM-RF-LF-LW, data=player1)
-
+reduce_na_fit = lm(ValueNumeric_pounds ~.-RWB-RB-LM-RF-LF-LW, data=player1_final)
 ```
 
 ```{r}
 summary(reduce_na_fit)
 ```
 
-Lets do VIF
+Lets do VIF, use findCorrelation to remove the multi-collinearity 
 ```{r}
 #install.packages("car")
+player1_final <- player1 
 car::vif(reduce_na_fit)
-player1_defend <- subset(player1, select=c("LWB", "LB", "CB", "RB", "RWB"))
+
+player1_defend <- subset(player1_without_PositionGroup, select=c("LWB", "LB", "CB", "RB", "RWB"))
 cor(player1_defend)
 
-player1_mid <- subset(player1, select=c( "CDM", "CM", "RM", "LM", "CAM"))
+player1_mid <- subset(player1_without_PositionGroup, select=c( "CDM", "CM", "RM", "LM", "CAM"))
 cor(player1_mid)
 
-player1_forward <- subset(player1, select=c( "CF", "RF", "LF", "LW", "RW"))
+player1_forward <- subset(player1_without_PositionGroup, select=c( "CF", "RF", "LF", "LW", "RW"))
 cor(player1_forward)
 
-player1_sub <- subset(player1, select=c( "LWB", "LB", "CB", "RB", "RWB","CDM", "CM", "RM", "LM", "CAM","CF", "RF", "LF", "LW", "RW"))
+player1_sub <- subset(player1_without_PositionGroup, select=c( "LWB", "LB", "CB", "RB", "RWB","CDM", "CM", "RM", "LM", "CAM","CF", "RF", "LF", "LW", "RW"))
 cor(player1_sub)
 
-player1_x <- subset(player1, select = -c(ValueNumeric_pounds, PositionGroup)) 
+player1_x <- subset(player1_without_PositionGroup, select = -c(ValueNumeric_pounds)) 
+
+
+player1_x
 
 
 corr_x <- cor(player1_x)
@@ -340,15 +312,23 @@ name_col_rem <- findCorrelation(corr_x, cutoff = 0.90, verbose = FALSE, names = 
 print("Regressors to Remove: ")
 name_col_rem
 
-player1_final <- player1[, ! names(player1) %in% name_col_rem, drop = F]
+player1_final <- player1_final[, ! names(player1_final) %in% name_col_rem, drop = F]
 
 player1_final
 
 ```
 
+
 ```{r}
-plot(fit)
+plot(reduce_na_fit)
+final_fit <- lm(Overall~. , data=player1_final)
+summary(final_fit)
+plot(final_fit)
 ```
+
+
+Run on Overall rating
+
 
 
 
@@ -361,6 +341,11 @@ library(glmnet)
 
 
 Set a seed for replication and define how many splits we are going to use in the experiment
+```{r}
+player1_final
+```
+
+
 ```{r}
 set.seed(42)
 nfold = 10
@@ -408,10 +393,11 @@ mydata <- player1_final
 ```
 
 ```{r}
-dim(player1)[[1]]
+dim(player1_final)[[1]]
 ```
 
-- \textcolor{mycolor}{Among the formula candidates, we find the best model by the cross-valudation.}
+Our version of checking prediction
+        
         
 ```{r, warning=FALSE}
         acc = rep(0, length(formulae))
@@ -421,18 +407,17 @@ dim(player1)[[1]]
                                 data= trains[[i]], family=gaussian)
             tpredict = round(predict(fit.candidate, 
                                      newdata = tests[[i]], type='response'))
-
             #Changing
             test <- tests[[i]]
             test$Predicted.Value <- tpredict
             new_data <- test[c("ValueNumeric_pounds","Predicted.Value")]
             # new_data$Value<- data.frame(tests[[i]]$ValueNumeric_pounds)
-            
+
             new_data <- new_data %>%
-                mutate(Difference = ValueNumeric_pounds - Predicted.Value ) 
+                mutate(Difference = ValueNumeric_pounds - Predicted.Value )
             new_data$Accuracy <- ifelse(new_data$Difference > 0.20 * new_data$ValueNumeric_pounds , 0, ifelse(new_data$Difference < -(0.20 * new_data$ValueNumeric_pounds),0, 1))
-              
-#             
+
+#
 # test$Predicted.Value <- test_fit
 # temp12 <- test[c("Name","Value","Predicted.Value")]
 # library(dplyr)
@@ -440,60 +425,83 @@ dim(player1)[[1]]
 #   mutate(Difference = Value - Predicted.Value )
 # temp12$Accuracy <- ifelse(temp12$Difference > 0.20 * temp12$Value , "No",ifelse(temp12$Difference < -(0.20 * temp12$Value),"No", "Yes"))
 # table(temp12$Accuracy)
-            
+
             dim(new_data)
             #print(new_data$Accuracy)
             acc[model_i] = sum(new_data$Accuracy)/ dim(new_data)[[1]]
             print(acc[model_i])
-            # acc[model_i] = acc[model_i] + 
-              
+            # acc[model_i] = acc[model_i] +
+
               # sum(diag(table(tests[[i]]$ValueNumeric_pounds, tpredict))) / nrow(tests[[i]])
           }
         }
         best_model_idx = which.max(acc)
         cat('Best model formula : ')
         formulae[best_model_idx]
-        
-        # acc_final_model = 1:nfold
-        # for(i in 1:nfold) {
-        #   fit.candidate = glm(formulae[[best_model_idx]], 
-        #                       data= trains[[i]], family=gaussian)
-        #   tpredict = round(predict(fit.candidate, newdata = tests[[i]],
-        #                    type='response'))
-        #   acc_final_model[i] = sum(diag(table(tests[[i]]$ValueNumeric_pounds, 
-        #                                       tpredict))) / nrow(tests[[i]])
-        # }
+      
 ```
 
 ```{r}
-player1_final$ValueNumeric_pounds
+best_fit<-lm(ValueNumeric_pounds ~ Overall + Potential + International.Reputation + 
+    Crossing + Finishing + ShortPassing + Volleys + Curve + FKAccuracy + 
+    LongPassing + BallControl + Acceleration + Agility + Stamina + 
+    Strength + Aggression + Vision + Penalties + StandingTackle + 
+    GKHandling + GKKicking + GKPositioning + GKReflexes + WageNumeric_pounds + 
+    Release.Clause_pounds, data=player1_final)
+summary(best_fit)
+car::vif(best_fit)
 ```
 
 
+Jung's explanation on why 2 and 16 are outliers.
+
+
 ```{r}
-# final_fit = lm(ValueNumeric_pounds/1000 ~ Overall + Potential + International.Reputation + 
-#     CB + Crossing + Finishing + HeadingAccuracy + Volleys + Curve + 
-#     FKAccuracy + Acceleration + Agility + Reactions + ShotPower + 
-#     Jumping + Stamina + Strength + LongShots + Aggression + Interceptions + 
-#     Vision + Penalties + Composure + Marking + GKPositioning + 
-#     PositionGroup, data=player1_final)
+best_fit1<-lm(ValueNumeric_pounds ~ Overall + Potential + International.Reputation + 
+    Crossing + Finishing + ShortPassing + Volleys + Curve + FKAccuracy + 
+    LongPassing + BallControl + Acceleration + Agility + Stamina +  Aggression + Vision + Penalties + StandingTackle  + WageNumeric_pounds + Release.Clause_pounds, data=player1_final)
+plot(best_fit1)
 
-# final_fit = lm(ValueNumeric_pounds/1000 ~ Overall + Potential + International.Reputation, data=player1_final)
-data<- filter(player1_final, ValueNumeric_pounds != 0)
-data
-
-final_fit = lm(ValueNumeric_pounds/1000 ~ Overall + Potential + International.Reputation, data=data)
-summary(final_fit)
-
-# TO-DO:
-# Add more columns to 
-# Overall + Potential + Wage + International.Reputation + Skill.Moves + Release.Clause
-
-
+car::vif(best_fit1)
 ```
 
+
+
 ```{r}
-plot(final_fit)
+best_fit2<-lm(log(ValueNumeric_pounds) ~ Overall + Potential + International.Reputation + 
+    Crossing + Finishing + ShortPassing + Volleys + Curve + FKAccuracy + 
+    LongPassing + BallControl + Acceleration + Agility + Stamina +  Aggression + Vision + Penalties + StandingTackle  + log(WageNumeric_pounds) + log(Release.Clause_pounds), data=player1_final)
+plot(best_fit2)
+summary(best_fit2)
+```
+
+
+
+```{r}
+best_fit3<-lm(ValueNumeric_pounds ~ WageNumeric_pounds+Release.Clause_pounds, data=player1_final)
+plot(best_fit3)
+summary(best_fit3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+plot(best_fit)
 ```
 
 

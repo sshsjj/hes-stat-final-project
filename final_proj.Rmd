@@ -2,24 +2,13 @@
 title: "STAT109 Final Project"
 author: "SASC"
 date: "May 11th, 2020"
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
----
-title: '1111'
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r}
-original_data<- read.csv("data.csv", header=TRUE)
-```
 
 Data cleaning and feature engineering
 ```{r}
@@ -30,6 +19,7 @@ library(ggthemes)
 library(kableExtra)
 library(plotly)
 library(readxl)
+library(dplyr)
 # Data Import
 fifa_data <- read.csv("data.csv", header=TRUE)
 # Dimensions of the dataset
@@ -61,11 +51,8 @@ fifa_data$Position <- ifelse(is.na(fifa_data$Position), "Unknown", fifa_data$Pos
 
 
 fifa_data <- fifa_data %>% 
-  mutate(PositionGroup = ifelse(Position %in% gk, "GK", ifelse(Position %in% defs, "DEF", ifelse(Position %in% mids, "MID", ifelse(Position %in% f1, "FWD", "Unknown")))))
+  mutate(PositionGroup = ifelse(Position %in% gk, "GK", ifelse(Position %in% defs, "DEF", ifelse(Position %in% mids, "MID", ifelse(Position %in% fwds, "FWD", "Unknown")))))
 
-
-# fifa_data <- fifa_data %>% 
-#   mutate(PositionGroup = ifelse(Position %in% as.numeric(gk), "GK", ifelse(Position %in% as.numeric(defs), "DEF", ifelse(Position %in% as.numeric(mids), "MID", ifelse(Position %in% as.numeric(fwds), "FWD", "Unknown")))))
 
 names(fifa_data)
 
@@ -312,10 +299,6 @@ fifa$PositionGroup <- as.factor(fifa$PositionGroup)
 fifa
 ```
 
-```{r}
-names(fifa)
-```
-
 
 
 ---- Sunhao Start -----
@@ -323,7 +306,6 @@ names(fifa)
 Based on our assumaption, we thought Wage and Release.clause are super significant. 
 How important Wage and Release take in this model? Without Wage and Release:
 ```{r}
-fifa <- player
 full_fit = lm(ValueNumeric_pounds ~.-WageNumeric_pounds-Release.Clause_pounds, data=fifa)
 summary(full_fit)
 plot(full_fit)
@@ -334,9 +316,7 @@ plot(full_fit)
 ----- Emmanuel Start ----
 Full model with Original Data
 ```{r}
-fifa <- player
 full_fit = lm(ValueNumeric_pounds ~., data=fifa)
-fifa
 summary(full_fit)
 plot(full_fit)
 ```
@@ -678,7 +658,7 @@ train_regularization_and_predict <- function(f, y, error_range, log_flag, alpha)
       x.test = model.matrix(f, tests[[i]])[, -1]
       
       if (alpha == 1){
-        lasso_coef = predict(fit.reg, type = "coefficients", s = cv.reg$lambda.min)[1:42,]
+        lasso_coef = predict(fit.reg, type = "coefficients", s = cv.reg$lambda.min)[1:41,]
         print(i)
         print(lasso_coef[lasso_coef != 0])
       }
@@ -791,23 +771,10 @@ plot(fit_final_lasso_model)
 
 
 
---- Sunhao END -----
+----- Sunhao END -----
 
 -----Jung ----------
 Jung please add your comments to this. :)
 Jung's explanation on why 1, 2 and 16 are outliers.
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

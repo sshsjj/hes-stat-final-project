@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE)
 original_data<- read.csv("data.csv", header=TRUE)
 ```
 
-
+Data cleaning and feature engineering
 ```{r}
 #load library
 library(tidyverse)
@@ -40,11 +40,8 @@ positions <- unique(fifa_data$Position)
 gk <- positions[str_detect(positions, "GK")]
 defs <- positions[str_detect(positions, "B$")]
 mids <- positions[str_detect(positions, "M$")]
-f1 <- positions[str_detect(positions, "F$")]
-f2 <- positions[str_detect(positions, "S$")]
-f3 <- positions[str_detect(positions, "T$")]
-f4 <- positions[str_detect(positions, "W$")]
-fwds <- c(f1, f2, f3, f4)
+fwds <- positions[str_detect(positions, "F$|S$|T$|W$")]
+
 
 # Convert Value, Release.Clause, 
 fifa_data <- fifa_data %>%
@@ -53,11 +50,22 @@ fifa_data <- fifa_data %>%
   mutate(WageMultiplier = ifelse(str_detect(Wage, "K"), 1000, ifelse(str_detect(Wage, "M"), 1000000, 1))) %>%
   mutate(WageNumeric_pounds = as.numeric(str_extract(Wage, "[[:digit:]]+\\.*[[:digit:]]*")) * WageMultiplier) %>%
   mutate(ReleaseMultiplier = ifelse(str_detect(Release.Clause, "K"), 1000, ifelse(str_detect(Release.Clause, "M"), 1000000, 1))) %>%
-  mutate(Release.Clause_pounds = as.numeric(str_extract(Release.Clause, "[[:digit:]]+\\.*[[:digit:]]*")) * ReleaseMultiplier) %>%
-  mutate(Position = ifelse(is.na(Position), "Unknown", Position))
+  mutate(Release.Clause_pounds = as.numeric(str_extract(Release.Clause, "[[:digit:]]+\\.*[[:digit:]]*")) * ReleaseMultiplier) 
+# %>%
+#   mutate(Position = ifelse(is.na(Position), "Unknown", as.factor(Position)))
+
+
+head(fifa_data)
+fifa_data$Position <- as.character(fifa_data$Position)
+fifa_data$Position <- ifelse(is.na(fifa_data$Position), "Unknown", fifa_data$Position)
+
 
 fifa_data <- fifa_data %>% 
-  mutate(PositionGroup = ifelse(Position %in% as.numeric(gk), "GK", ifelse(Position %in% as.numeric(defs), "DEF", ifelse(Position %in% as.numeric(mids), "MID", ifelse(Position %in% as.numeric(fwds), "FWD", "Unknown")))))
+  mutate(PositionGroup = ifelse(Position %in% gk, "GK", ifelse(Position %in% defs, "DEF", ifelse(Position %in% mids, "MID", ifelse(Position %in% f1, "FWD", "Unknown")))))
+
+
+# fifa_data <- fifa_data %>% 
+#   mutate(PositionGroup = ifelse(Position %in% as.numeric(gk), "GK", ifelse(Position %in% as.numeric(defs), "DEF", ifelse(Position %in% as.numeric(mids), "MID", ifelse(Position %in% as.numeric(fwds), "FWD", "Unknown")))))
 
 names(fifa_data)
 
@@ -67,124 +75,117 @@ player <- fifa_data[, c(91, 8, 9, 16, 18, 22, 45, 49, 50, 52, 54, 47, 42, 44, 40
 # Dimension of the final dataset
 dim(player)
 names(player)
-```
-```{r}
-mean(player[player$PositionGroup == "FWD", ]$ValueNumeric_pounds)
-mean(player[player$PositionGroup == "DEF", ]$ValueNumeric_pounds)
-mean(player[player$PositionGroup == "MID", ]$ValueNumeric_pounds)
-```
-
-
-```{r}
-
-```
-
-
-
-
-```{r}
-as.numeric(defs)
-positions <- unique(fifa_data$Position)
-```
-
-
----------------- For Kmeans START------------------
-```{r}
-#???????????????
 player
-defender <- player[3:7]
-mid <- player[8:12]
-forward <- player[13:17]
-position<-c("defender","mid","forward")
-defender
-names(player)
-
-defender
 ```
+
+
+Data Analysis Part:
+https://www.kaggle.com/jaseziv83/clustering-to-help-club-managers
+
+Praneet
 ```{r}
-#install.packages("varhandle")
-library("varhandle")
-##defender$LWB <- unfactor(defender$LWB)
-defender <- player[3:7]
-defender <- defender %>% 
-  mutate(LWB = strtoi(str_replace(LWB, "\\+[0-9]", '')))  %>% 
-  mutate(RWB = strtoi(str_replace(RWB, "\\+[0-9]", '')))  %>% 
-  mutate(LB = strtoi(str_replace(LB, "\\+[0-9]", '')))  %>% 
-  mutate(CB = strtoi(str_replace(CB, "\\+[0-9]", ''))) %>% 
-  mutate(RB = strtoi(str_replace(RB, "\\+[0-9]", '')))
-
-defender<- na.omit(defender)
-defender
-
-#data <- data.frame(lapply(defender$LWB, function(x) { str_replace_all(x, "+", "") }))
-
-#str_replace_all(defender$LWB,"+", " ")
-#str_replace_all('+', '', defender$LWB)
-#sapply(strsplit(defender$LWB,"+"), `[`, 2)
-
-#as.numeric(levels(defender$LWB))[defender$LWB]
+fifa_data %>%
+  filter(!PositionGroup %in% c("GK", "Unknown")) %>%
+  group_by(Age) %>%
+  summarise(Rating = mean(Overall)) %>%
+  ggplot(aes(x= Age, y= Rating, group = 1)) +
+  geom_line(color = "grey", size = 1) +
+  ggtitle("The Age Curve Flattens Off", subtitle = "Player ratings tend not to get better after the age of 30") +
+  xlab("Age") +
+  theme_economist_white() +
+  theme(axis.title = element_text(), axis.title.y = element_blank(), axis.title.x = element_text(face = "bold"))
 ```
+
+Praneet
 ```{r}
-defender.kmean = kmeans(defender, centers = 5, nstart=20)
-str(defender.kmean)
-#install.packages("factoextra")
-library(factoextra)
-fviz_cluster(defender.kmean, data=defender)
-
-#mid.kmean = kmeans (mid, centers = 3, nstart=20)
-#index_m = which (mid.kmean$cluster ==1) 
-#forward.kmean = kmeans (forward, centers = 3, nstart=20) 
-#index_f = which (forward.kmean$cluster ==1) 
+fifa_data %>%
+  filter(!PositionGroup %in% c("GK", "Unknown")) %>%
+  group_by(PositionGroup, Age) %>%
+  summarise(Rating = mean(Overall)) %>%
+  ggplot(aes(x= Age, y= Rating, group = PositionGroup)) +
+  geom_line(size = 1, color = "grey50") +
+  theme_economist_white() +
+  facet_wrap(~ PositionGroup, ncol = 1) +
+  theme(strip.background = element_rect(fill = "lightblue"), strip.text = element_text(colour = "white", face = "bold"))
 ```
 
 
+
+
+Emmanuel
 ```{r}
-set.seed(10)
-fviz_nbclust(defender, kmeans, method = "wss")
-names(mid)
-names(forward)
+p <- fifa_data %>%
+  ggplot(aes(x= ValueNumeric_pounds)) +
+  geom_histogram(color = "white", fill = "lightblue") +
+  scale_x_continuous(labels = dollar_format(prefix = "€")) +
+  ggtitle("Player Valuations Are Heavily Skewed", subtitle = "Long tail indicates there are some extreme outliers") +
+  theme_economist_white()
+
+p +
+  geom_text(data = subset(fifa_data, Name == "Neymar Jr"), aes(x= ValueNumeric_pounds, y= 500, label=Name), color = "orange") +
+  geom_text(data = subset(fifa_data, Name == "L. Messi"), aes(x= ValueNumeric_pounds, y= 1000, label=Name), color = "orange") +
+  geom_text(data = subset(fifa_data, Name == "K. De Bruyne"), aes(x= ValueNumeric_pounds, y= 200, label=Name), color = "orange") +
+  geom_text(data = subset(fifa_data, Name == "E. Hazard"), aes(x= ValueNumeric_pounds, y= 500, label=Name), color = "orange") +
+  geom_text(data = subset(fifa_data, Name == "P. Dybala"), aes(x= ValueNumeric_pounds, y= 1000, label=Name), color = "orange")
 ```
 
+
+Emmanuel
 ```{r}
-mid <- player[8:12]
-mid <- mid %>% 
-  mutate(CDM = strtoi(str_replace(CDM, "\\+[0-9]", '')))  %>% 
-  mutate(CM = strtoi(str_replace(CM, "\\+[0-9]", '')))  %>% 
-  mutate(RM = strtoi(str_replace(RM, "\\+[0-9]", '')))  %>% 
-  mutate(LM = strtoi(str_replace(LM, "\\+[0-9]", ''))) %>% 
-  mutate(CAM = strtoi(str_replace(CAM, "\\+[0-9]", '')))
+fifa_data <- fifa_data %>%
+  mutate(AgeGroup = ifelse(Age <= 20, "20 and under", ifelse(Age > 20 & Age <=25, "21 to 25", ifelse(Age > 25 & Age <= 30, "25 to 30", ifelse(Age > 30 & Age <= 35, "31 to 35", "Over 35")))))
 
-mid = na.omit(mid)
+
+fifa_data %>%
+  ggplot(aes(x= AgeGroup, y= ValueNumeric_pounds)) +
+  geom_boxplot(fill = "lightblue") +
+  scale_y_log10(labels = dollar_format(prefix = "€")) +
+  ggtitle("Players Are In High Demand In Their Mid-20s", subtitle = "Valuation on a log scale, so differences \nbetween the age groups are significant") +
+  theme_economist_white()
 ```
 
+
+
+Jung
+```{r, fig.height=10, fig.width=10}
+
+a <- fifa_data %>%
+  filter(PositionGroup != "Unknown") %>%
+  ggplot(aes(x= PositionGroup, y= ValueNumeric_pounds)) +
+  geom_boxplot(fill = "lightblue") +
+  scale_y_log10(labels = dollar_format(prefix = "€")) +
+  ggtitle("Positions to Break The Piggybank", subtitle = "Attackers and midfielders bring the fans to games... \nPay them the money!") +
+  theme_economist_white()
+
+
+b <- fifa_data %>%
+  filter(PositionGroup != "Unknown") %>%
+  ggplot(aes(x= Position, y= ValueNumeric_pounds)) +
+  geom_boxplot(fill = "lightblue") +
+  scale_y_log10(labels = dollar_format(prefix = "€")) +
+  coord_flip() +
+  theme_economist_white() +
+  facet_wrap(~ PositionGroup, scales = "free") +
+  theme(strip.background = element_rect(fill = "lightblue"), strip.text = element_text(colour = "white", face = "bold"))
+
+gridExtra::grid.arrange(a, b)
+```
+
+
+Jung
 ```{r}
-mid.kmean = kmeans(mid, centers = 3, nstart=20)
-str(mid.kmean)
-#install.packages("factoextra")
-library(factoextra)
-fviz_cluster(mid.kmean, data=mid)
-index_m = which (mid.kmean$cluster ==1) 
-#pairs(mid,col=c(1:3)[mid.kmean$cluster])
+fifa_data %>%
+  filter(PositionGroup != "Unknown") %>%
+  ggplot(aes(x= Overall, y= ValueNumeric_pounds)) +
+  geom_point(position = "jitter", color = "lightblue") +
+  ggtitle("Higher Ratings Cost More Money", subtitle = "There are still some high rating players that \ndon't cost an arm and a leg") +
+  scale_y_continuous(labels = dollar_format(prefix = "€")) +
+  theme_economist_white() +
+  annotate("text", x= 70, y= 97000000, label = paste0("Spearman Correlation: ", round(cor(fifa_data$Overall, fifa_data$ValueNumeric_pounds, method = "spearman"),4)), color = "orange", size = 8)
 ```
 
 
-```{r}
-subset(fifa_data,select= c(8,9,10,37:43))
-unique(fifa_data[10])
-```
-
-
-```{r}
-# Replace empty string in R
-#https://stackoverflow.com/questions/51449243/how-to-replace-empty-string-with-na-in-r-dataframe
-defender.kmean=kmeans(defender,centers=3,nstart=20)
-index_d=which(defender.kmean$cluster==1)
-pairs(defender,col=c(1:3)[defender.kmean$cluster])
-print(defender.kmean)
-```
-
----------------- For Kmeans END-------------------
-
+----Sunhao Start -----
 ```{r}
 library("varhandle")
 #player$LWB <- unfactor(defender$LWB)
@@ -211,255 +212,213 @@ player <- player %>%
 player <- na.omit(player)  # Removing GK
 ```
 
+~~~~~Kmeans~~~~~~~
+
+```{r, fig.width=10, fig.height=5}
+player_positions <- subset(player, select=c(LWB, RWB, LB, CB, RB, CDM, CM, RM, LM, CAM, CF, RF, LF, RW, LW))
+player_positions.kmean = kmeans(player_positions, centers = 3, nstart=20)
+str(player_positions.kmean)
+#install.packages("factoextra")
+library(factoextra)
+fviz_cluster(player_positions.kmean, data=player_positions)
+
+```
+
+
+Elbow Method
+https://uc-r.github.io/kmeans_clustering#elbow
+The location of a bend (knee) in the plot is generally considered as an indicator of the appropriate number of clusters.
 ```{r}
-player
+set.seed(123)
+
+# function to compute total within-cluster sum of square 
+wss <- function(k) {
+  kmeans(player_positions, k, nstart = 20 )$tot.withinss
+}
+
+# Compute and plot wss for k = 1 to k = 15
+k.values <- 1:15
+
+# extract wss for 2-15 clusters
+wss_values <- map_dbl(k.values, wss)
+
+plot(k.values, wss_values,
+       type="b", pch = 19, frame = FALSE, 
+       xlab="Number of clusters K",
+       ylab="Total within-clusters sum of squares")
 ```
 
 
 ```{r}
-player1 <- player
+# print(player_positions.kmean)
+# names(player_positions.kmean$cluster)
+
+player_positions_with_name <- player_positions
+
+# dd[which(dd$cluster == 1),]
+
+subset_for_binding <- fifa_data[, c(2, 3, 91, 8, 9, 16, 18, 22, 45, 49, 50, 52, 54, 47, 42, 44, 40, 38, 34, 35, 33, 36, 32, 55:88, 93, 95, 96)]
+subset_for_binding <- subset_for_binding %>% 
+  mutate(LWB = strtoi(str_replace(LWB, "\\+[0-9]", '')))  %>% 
+  mutate(RWB = strtoi(str_replace(RWB, "\\+[0-9]", '')))  %>% 
+  mutate(LB = strtoi(str_replace(LB, "\\+[0-9]", '')))  %>% 
+  mutate(CB = strtoi(str_replace(CB, "\\+[0-9]", ''))) %>% 
+  mutate(RB = strtoi(str_replace(RB, "\\+[0-9]", ''))) %>% 
+  mutate(CDM = strtoi(str_replace(CDM, "\\+[0-9]", ''))) %>% 
+  mutate(CM = strtoi(str_replace(CM, "\\+[0-9]", ''))) %>% 
+  mutate(RM = strtoi(str_replace(RM, "\\+[0-9]", ''))) %>% 
+  mutate(LM = strtoi(str_replace(LM, "\\+[0-9]", ''))) %>% 
+  mutate(CAM = strtoi(str_replace(CAM, "\\+[0-9]", ''))) %>% 
+  mutate(CF = strtoi(str_replace(CF, "\\+[0-9]", ''))) %>% 
+  mutate(RF = strtoi(str_replace(RF, "\\+[0-9]", ''))) %>% 
+  mutate(LF = strtoi(str_replace(LF, "\\+[0-9]", ''))) %>% 
+  mutate(RW = strtoi(str_replace(RW, "\\+[0-9]", ''))) %>% 
+  mutate(LW = strtoi(str_replace(LW, "\\+[0-9]", '')))  
+
+subset_for_binding <- na.omit(subset_for_binding)
+
+
+dd <- cbind(subset_for_binding, cluster = player_positions.kmean$cluster)
+
+dd[, c(2, 3, 61)][which(dd$cluster == 1),]
+dd[, c(2, 3, 61)][which(dd$cluster == 2),]
+dd[, c(2, 3, 61)][which(dd$cluster == 3),]
+
+
+mean(dd[, c(2, 3, 61)][which(dd$cluster == 1),]$ValueNumeric_pounds)
+mean(dd[, c(2, 3, 61)][which(dd$cluster == 2),]$ValueNumeric_pounds)
+mean(dd[, c(2, 3, 61)][which(dd$cluster == 3),]$ValueNumeric_pounds)
+
+hist(dd[, c(2, 3, 61)][which(dd$cluster == 1),]$ValueNumeric_pounds)
+hist(dd[, c(2, 3, 61)][which(dd$cluster == 2),]$ValueNumeric_pounds)
+hist(dd[, c(2, 3, 61)][which(dd$cluster == 3),]$ValueNumeric_pounds)
+
+hist(dd[, c(2, 3, 61)][which(dd$cluster == 1 & dd$ValueNumeric_pounds < 10000000),]$ValueNumeric_pounds)
+hist(dd[, c(2, 3, 61)][which(dd$cluster == 2 & dd$ValueNumeric_pounds < 10000000),]$ValueNumeric_pounds)
+hist(dd[, c(2, 3, 61)][which(dd$cluster == 3 & dd$ValueNumeric_pounds < 10000000),]$ValueNumeric_pounds)
+```
+
+----Sunhao END -----
+
+
+
+
+```{r}
+fifa <- player
 # https://stackoverflow.com/questions/4605206/drop-data-frame-columns-by-name
-player1 <- subset(player1, select = -c(Position))
-player1_without_PositionGroup <- subset(player1, select = -c(PositionGroup))
-player1$PositionGroup <- as.factor(player1$PositionGroup)
-player1
+fifa <- subset(fifa, select = -c(Position))
+fifa_without_PositionGroup <- subset(fifa, select = -c(PositionGroup))
+fifa$PositionGroup <- as.factor(fifa$PositionGroup)
+fifa
 ```
 
 ```{r}
-names(player1)
+names(fifa)
 ```
+
+
+
+---- Sunhao Start -----
 
 Based on our assumaption, we thought Wage and Release.clause are super significant. 
 How important Wage and Release take in this model? Without Wage and Release:
 ```{r}
-player1 <- player
-full_fit = lm(ValueNumeric_pounds ~.-WageNumeric_pounds-Release.Clause_pounds, data=player1)
+fifa <- player
+full_fit = lm(ValueNumeric_pounds ~.-WageNumeric_pounds-Release.Clause_pounds, data=fifa)
 summary(full_fit)
 plot(full_fit)
 ```
 
 
+
+----- Emmanuel Start ----
 Full model with Original Data
 ```{r}
-player1 <- player
-full_fit = lm(ValueNumeric_pounds ~., data=player1)
-player1
+fifa <- player
+full_fit = lm(ValueNumeric_pounds ~., data=fifa)
+fifa
 summary(full_fit)
 plot(full_fit)
 ```
 
 
 
-Not doing it--- Scaling on the final data ----
 ```{r}
-# player1_final <- as.data.frame(scale(subset(player1, select = -c(PositionGroup))))
-
-# ---- SCALING ----
-player_data <- subset(player1, select = -c(PositionGroup))
-# calculate the pre-process parameters from the dataset
-preprocessParams <- preProcess(player_data, method=c("range"))
-preprocessParams
-# summarize transform parameters
-print(preprocessParams)
-# transform the dataset using the parameters
-data_scaled <- predict(preprocessParams, player_data) + c(0.0000001)
-# summarize the transformed dataset
-for(i in 1:ncol(player_data))
-  data_scaled[is.na(data_scaled[,i]), i] <- mean(data_scaled[,i], na.rm = TRUE)
-  data_scaled[is.infinite(data_scaled[,i]), i] <- mean(data_scaled[,i], na.rm = TRUE)
-
-player1_final <- data_scaled
-
-reduce_all_pos_fit = lm(ValueNumeric_pounds ~.-LWB-RWB-LB-CB-RB-CDM-CM-RM-LM-CAM-CF-RF-LF-RW-LW, data=player1_final)
-full = lm(ValueNumeric_pounds ~., data=player1_final)
-summary(full)
-# get rid of aliased coefficients 
-reduce_na_fit = lm(ValueNumeric_pounds ~.-RWB-RB-LM-RF-LF-LW, data=player1_final)
-```
-
-```{r}
+fifa_final <- fifa 
+reduce_na_fit = lm(ValueNumeric_pounds ~.-RWB-RB-LM-RF-LF-LW, data=fifa_final)
 summary(reduce_na_fit)
 ```
 
 Lets do VIF, use findCorrelation to remove the multi-collinearity 
 ```{r}
 #install.packages("car")
-player1_final <- player1 
+fifa_final <- fifa 
 car::vif(reduce_na_fit)
 
-player1_defend <- subset(player1_without_PositionGroup, select=c("LWB", "LB", "CB", "RB", "RWB"))
-cor(player1_defend)
+fifa_defend <- subset(fifa_without_PositionGroup, select=c("LWB", "LB", "CB", "RB", "RWB"))
+cor(fifa_defend)
 
-player1_mid <- subset(player1_without_PositionGroup, select=c( "CDM", "CM", "RM", "LM", "CAM"))
-cor(player1_mid)
+fifa_mid <- subset(fifa_without_PositionGroup, select=c( "CDM", "CM", "RM", "LM", "CAM"))
+cor(fifa_mid)
 
-player1_forward <- subset(player1_without_PositionGroup, select=c( "CF", "RF", "LF", "LW", "RW"))
-cor(player1_forward)
+fifa_forward <- subset(fifa_without_PositionGroup, select=c( "CF", "RF", "LF", "LW", "RW"))
+cor(fifa_forward)
 
-player1_sub <- subset(player1_without_PositionGroup, select=c( "LWB", "LB", "CB", "RB", "RWB","CDM", "CM", "RM", "LM", "CAM","CF", "RF", "LF", "LW", "RW"))
-cor(player1_sub)
+fifa_sub <- subset(fifa_without_PositionGroup, select=c( "LWB", "LB", "CB", "RB", "RWB","CDM", "CM", "RM", "LM", "CAM","CF", "RF", "LF", "LW", "RW"))
+cor(fifa_sub)
 
-player1_x <- subset(player1_without_PositionGroup, select = -c(ValueNumeric_pounds)) 
-
-
-player1_x
+fifa_x <- subset(fifa_without_PositionGroup, select = -c(ValueNumeric_pounds)) 
 
 
-corr_x <- cor(player1_x)
+fifa_x
+
+
+corr_x <- cor(fifa_x)
 # install.packages("caret")
 library("caret")
 name_col_rem <- findCorrelation(corr_x, cutoff = 0.90, verbose = FALSE, names = TRUE, exact = TRUE)
 print("Regressors to Remove: ")
 name_col_rem
 
-player1_final <- player1_final[, ! names(player1_final) %in% name_col_rem, drop = F]
+fifa_final <- fifa_final[, ! names(fifa_final) %in% name_col_rem, drop = F]
 
-player1_final
+fifa_final
 
 ```
 
 
 ```{r}
 plot(reduce_na_fit)
-final_fit <- lm(Overall~. , data=player1_final)
+# Checking if Y=Overall
+final_fit <- lm(Overall~. , data=fifa_final)
 summary(final_fit)
 plot(final_fit)
 ```
 
-
-Run on Overall rating
-
+----- Emmanuel END ----
 
 
 
-```{r}
-#install.packages("glmnet")
-library(glmnet)
-```
 
-\textcolor{mycolor}{We are going to find the best model using the stepwise method and the linear lasso model. For this purpose, we evaluate candidate models on randomly generated $n$-fold datasets each of which consists of 80\% training and 20\% test splits. For the evaluation purpose, we use the accuracy (the ratio of correct prediction) as the evaluation measure. We explain our approach in detail as follows:}
-
-
-Set a seed for replication and define how many splits we are going to use in the experiment
-```{r}
-player1_final
-```
-
-
-```{r}
-set.seed(42)
-nfold = 10
-mydata <- player1_final
-```
-    
-2) \textcolor{mycolor}{Generate \texttt{nfold}-fold datasets.}
-
-```{r}
-    trains = list()
-    tests = list()
-    for(i in 1:nfold) {
-      sample_idx = sample.int(n = nrow(mydata),
-                              size = floor(.80*nrow(mydata)),
-                              replace=F)
-      trains[[i]] = mydata[sample_idx, ]
-      tests[[i]] = mydata[-sample_idx,]
-    }
-```
-
-3) \textcolor{mycolor}{Compute the average accuracy of the full model over the splits. The full model is used as a baseline.}
-
-```{r, warning=FALSE}
-    acc_full = 1:nfold
-    for(i in 1:nfold) {
-      fit.full = lm(ValueNumeric_pounds~., data=trains[[i]])
-      tpredict = round(predict(fit.full, newdata = tests[[i]], type='response'))
-      acc_full[i] = sum(diag(table(tests[[i]]$ValueNumeric_pounds, 
-                                   tpredict))) / nrow(tests[[i]])
-    }
-```
-
-4) \textcolor{mycolor}{The stepwise approach.}
-
-    - \textcolor{mycolor}{Using \texttt{step()}, find formula candidates from the datasets. For this purpose, we run \texttt{step()} on each split.}
-    
-```{r, warning=FALSE}
-        formulae_all = list()
-        for(i in 1:nfold) {
-          formulae_all[[i]] = formula(step(lm(ValueNumeric_pounds~., 
-                                               data=trains[[i]]), trace=F))
-        }
-        formulae = unique(formulae_all)
-        print(formulae)
-```
-
-```{r}
-dim(player1_final)[[1]]
-```
-
-Our version of checking prediction
-        
-        
-```{r, warning=FALSE}
-        acc = rep(0, length(formulae))
-        for(i in 1:nfold) {
-          for(model_i in 1:length(formulae)) {
-            fit.candidate = glm(formulae[[model_i]], 
-                                data= trains[[i]], family=gaussian)
-            tpredict = round(predict(fit.candidate, 
-                                     newdata = tests[[i]], type='response'))
-            #Changing
-            test <- tests[[i]]
-            test$Predicted.Value <- tpredict
-            new_data <- test[c("ValueNumeric_pounds","Predicted.Value")]
-            # new_data$Value<- data.frame(tests[[i]]$ValueNumeric_pounds)
-
-            new_data <- new_data %>%
-                mutate(Difference = ValueNumeric_pounds - Predicted.Value )
-            new_data$Accuracy <- ifelse(new_data$Difference > 0.20 * new_data$ValueNumeric_pounds , 0, ifelse(new_data$Difference < -(0.20 * new_data$ValueNumeric_pounds),0, 1))
-
-#
-# test$Predicted.Value <- test_fit
-# temp12 <- test[c("Name","Value","Predicted.Value")]
-# library(dplyr)
-# temp12 <- temp12 %>%
-#   mutate(Difference = Value - Predicted.Value )
-# temp12$Accuracy <- ifelse(temp12$Difference > 0.20 * temp12$Value , "No",ifelse(temp12$Difference < -(0.20 * temp12$Value),"No", "Yes"))
-# table(temp12$Accuracy)
-
-            dim(new_data)
-            #print(new_data$Accuracy)
-            acc[model_i] = sum(new_data$Accuracy)/ dim(new_data)[[1]]
-            print(acc[model_i])
-            # acc[model_i] = acc[model_i] +
-
-              # sum(diag(table(tests[[i]]$ValueNumeric_pounds, tpredict))) / nrow(tests[[i]])
-          }
-        }
-        best_model_idx = which.max(acc)
-        cat('Best model formula : ')
-        formulae[best_model_idx]
-      
-```
-
+----  TODO  -----
 ```{r}
 best_fit<-lm(ValueNumeric_pounds ~ Overall + Potential + International.Reputation + 
     Crossing + Finishing + ShortPassing + Volleys + Curve + FKAccuracy + 
     LongPassing + BallControl + Acceleration + Agility + Stamina + 
     Strength + Aggression + Vision + Penalties + StandingTackle + 
     GKHandling + GKKicking + GKPositioning + GKReflexes + WageNumeric_pounds + 
-    Release.Clause_pounds, data=player1_final)
+    Release.Clause_pounds, data=fifa_final)
 summary(best_fit)
 car::vif(best_fit)
 ```
 
 
-Jung's explanation on why 2 and 16 are outliers.
 
 
 ```{r}
 best_fit1<-lm(ValueNumeric_pounds ~ Overall + Potential + International.Reputation + 
     Crossing + Finishing + ShortPassing + Volleys + Curve + FKAccuracy + 
-    LongPassing + BallControl + Acceleration + Agility + Stamina +  Aggression + Vision + Penalties + StandingTackle  + WageNumeric_pounds + Release.Clause_pounds, data=player1_final)
+    LongPassing + BallControl + Acceleration + Agility + Stamina +  Aggression + Vision + Penalties + StandingTackle  + WageNumeric_pounds + Release.Clause_pounds, data=fifa_final)
 plot(best_fit1)
 
 car::vif(best_fit1)
@@ -470,231 +429,382 @@ car::vif(best_fit1)
 ```{r}
 best_fit2<-lm(log(ValueNumeric_pounds) ~ Overall + Potential + International.Reputation + 
     Crossing + Finishing + ShortPassing + Volleys + Curve + FKAccuracy + 
-    LongPassing + BallControl + Acceleration + Agility + Stamina +  Aggression + Vision + Penalties + StandingTackle  + log(WageNumeric_pounds) + log(Release.Clause_pounds), data=player1_final)
+    LongPassing + BallControl + Acceleration + Agility + Stamina +  Aggression + Vision + Penalties + StandingTackle  + log(WageNumeric_pounds) + log(Release.Clause_pounds), data=fifa_final)
 plot(best_fit2)
 summary(best_fit2)
 ```
 
 
 
+
+
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+--- Sunhao Start -----
+
+New Code:
+Data and formula prepare
 ```{r}
-best_fit3<-lm(ValueNumeric_pounds ~ WageNumeric_pounds+Release.Clause_pounds, data=player1_final)
-plot(best_fit3)
-summary(best_fit3)
-```
+fifa_final_log <- fifa_final
+fifa_final_log$log_ValueNumeric<- log(fifa_final_log$ValueNumeric_pounds)
+fifa_final_log$log_Wage <- log(fifa_final_log$WageNumeric_pounds)
+fifa_final_log$log_Release <- log(fifa_final_log$Release.Clause_pounds)
 
 
+# fifa_final_log <- subset(fifa_final_log, select=-c(WageNumeric_pounds, Release.Clause_pounds))
+outcome <- "log_ValueNumeric"
+variables <- c(".", "ValueNumeric_pounds", "WageNumeric_pounds", "Release.Clause_pounds")
+
+# our modeling effort, 
+# fully parameterized!
+f_log <- as.formula(
+  paste(outcome, 
+        paste(variables, collapse = "-"), 
+        sep = " ~ "))
+print(f_log)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-plot(best_fit)
-```
-
-
-
-5) \textcolor{mycolor}{Linear lasso. We optimize the Linear regression with the $L_1$-norm penelty (lasso).}
-    ```{r, warning=FALSE}
-    acc_lasso = 1:nfold
-    for(i in 1:nfold) {
-      x = model.matrix(ValueNumeric_pounds~.-ValueNumeric_pounds, trains[[i]])[, -1]
-      y = trains[[i]]$ValueNumeric_pounds
-      cv.lasso <- cv.glmnet(x, y, alpha = 1, family = "gaussian")
-      fit.lasso = glmnet(x, y, alpha = 1, family = "gaussian",
-                         lambda = cv.lasso$lambda.min)
-      x.test = model.matrix( ~.-ValueNumeric_pounds, tests[[i]])[, -1]
-      
-      tpredict = round(predict(fit.lasso, newx=x.test,
-                               type='response'))
-      acc_lasso[i] = sum(diag(table(tests[[i]]$ValueNumeric_pounds, 
-                                          tpredict))) / nrow(tests[[i]])
-    }
-    ```
-
-
-
-6) \textcolor{mycolor}{Compare the accuracies among the full model, the stepwise model, and the Linear lasso.}
-    ```{r}
-    cat('Stepwise model average accuracy = ', 
-        sprintf('%.5f', mean(acc_final_model)), '\n')
-    cat('   Lasso model average accuracy = ',
-        sprintf('%.5f', mean(acc_lasso)), '\n')
-    cat('    Full model average accuracy = ', 
-        sprintf('%.5f', mean(acc_full)), '\n')
-
-    # stepwise model
-    plot(1:nfold, acc_final_model, "l", col="red",
-         xlab="splits", ylab="accuracy", 
-         main="stepwise model vs lasso model vs full model",
-         ylim=c(0, 1))
-    points(1:nfold, acc_final_model, col="red")
-    
-    # full model
-    lines(1:nfold, acc_full, col="blue", lty=2)
-    points(1:nfold, acc_full, col="blue")
-    
-    # lasso model
-    lines(1:nfold, acc_lasso, col="black", lty=3)
-    points(1:nfold, acc_lasso, col="black")
-    
-    legend('topright', legend=c('stepwise model', 'lasso model', 'full model'), 
-           col=c('red', 'black', 'blue'), lty=c(1, 3, 2), pch=10, cex=0.6)
-  
-    ```
-    
-From the above experiment, we found that the model from the stepwise approach performed the best. Therefore, we suggest the final model as follows:
- -------------------------
- 
- Get rid of positions
- -------------------------
-
-Set a seed for replication and define how many splits we are going to use in the experiment
-
-
-```{r}
-player1[2:16]
-```
-
-```{r}
+# 1. Generate n-fold datasets:  Train and Test
 set.seed(42)
 nfold = 10
-mydata <- subset(player1,select= c(1, 17:51))
+mydata = fifa_final_log
+trains = list()
+tests = list()
+for(i in 1:nfold) {
+  sample_idx = sample.int(n = nrow(mydata),
+                          size = floor(.80*nrow(mydata)),
+                          replace=F)
+  trains[[i]] = mydata[sample_idx, ]
+  tests[[i]] = mydata[-sample_idx,]
+}
+
+
 ```
-    
-2) \textcolor{mycolor}{Generate \texttt{nfold}-fold datasets.}
 
 ```{r}
-    trains = list()
-    tests = list()
-    for(i in 1:nfold) {
-      sample_idx = sample.int(n = nrow(mydata),
-                              size = floor(.80*nrow(mydata)),
-                              replace=F)
-      trains[[i]] = mydata[sample_idx, ]
-      tests[[i]] = mydata[-sample_idx,]
-    }
-```
+# Accuracy with log or without log
+calculate_accuracy <- function(test_set, predict_val, y, error_range, log_flag){
+  test <- test_set
+  test$Predicted.Value <- predict_val
+  if (y == "ValueNumeric_pounds"){
+    new_data <- test[c(y, "Predicted.Value")]
+  }
+  else{
+    new_data <- test[c(y, "Predicted.Value", "ValueNumeric_pounds")]
+  }
 
-3) \textcolor{mycolor}{Compute the average accuracy of the full model over the splits. The full model is used as a baseline.}
+  # new_data$Value<- data.frame(tests[[i]]$ValueNumeric_pounds)
+  if (log_flag ==1) {
+      # mutate(original_y = exp(UQ(sym(y))))
+    new_data <- new_data %>%
+      mutate(Difference = ValueNumeric_pounds - exp(Predicted.Value))
+    new_data <- new_data %>%
+      mutate(Accuracy = ifelse(Difference > error_range * ValueNumeric_pounds , 0, ifelse(Difference < -(error_range * ValueNumeric_pounds),0, 1)))
+    #print(new_data$Accuracy)
+    return(sum(new_data$Accuracy)/ dim(new_data)[[1]])
+  }
+  else {
+    new_data <- new_data %>%
+      mutate(Difference = UQ(sym(y))- Predicted.Value )
+    new_data <- new_data %>%
+      mutate(Accuracy = ifelse(Difference > error_range * UQ(sym(y)) , 0, ifelse(Difference < -(error_range * UQ(sym(y))),0, 1)))
 
-```{r, warning=FALSE}
-    acc_full = 1:nfold
-    for(i in 1:nfold) {
-      fit.full = lm(Overall~., data=trains[[i]])
-      tpredict = round(predict(fit.full, newdata = tests[[i]], type='response'))
-      acc_full[i] = sum(diag(table(tests[[i]]$Overall, 
-                                   tpredict))) / nrow(tests[[i]])
-    }
-```
+    return(sum(new_data$Accuracy)/ dim(new_data)[[1]])
+  }
+}
 
-4) \textcolor{mycolor}{The stepwise approach.}
-
-    - \textcolor{mycolor}{Using \texttt{step()}, find formula candidates from the datasets. For this purpose, we run \texttt{step()} on each split.}
-    
-```{r, warning=FALSE}
-        formulae_all = list()
-        for(i in 1:nfold) {
-          formulae_all[[i]] = formula(step(lm(Overall~., 
-                                               data=trains[[i]]), trace=F))
-        }
-        formulae = unique(formulae_all)
-        print(formulae)
-```
-
-- \textcolor{mycolor}{Among the formula candidates, we find the best model by the cross-valudation.}
-        
-```{r, warning=FALSE}
-        acc = rep(0, length(formulae))
-        for(i in 1:nfold) {
-          for(model_i in 1:length(formulae)) {
-            fit.candidate = glm(formulae[[model_i]], 
-                                data= trains[[i]], family=gaussian)
-            tpredict = round(predict(fit.candidate, 
-                                     newdata = tests[[i]], type='response'))
-            acc[model_i] = acc[model_i] + 
-              sum(diag(table(tests[[i]]$Overall, tpredict))) / nrow(tests[[i]])
-          }
-        }
-        best_model_idx = which.max(acc)
-        cat('Best model formula : ')
-        formulae[best_model_idx]
-        
-        acc_final_model = 1:nfold
-        for(i in 1:nfold) {
-          fit.candidate = glm(formulae[[best_model_idx]], 
-                              data= trains[[i]], family=gaussian)
-          tpredict = round(predict(fit.candidate, newdata = tests[[i]],
-                           type='response'))
-          acc_final_model[i] = sum(diag(table(tests[[i]]$Overall, 
-                                              tpredict))) / nrow(tests[[i]])
-        }
-```
+#parameterize the formula, as Y can not be passed to lm..... that sucks. 
 
 
 
+train_stepwise_and_predict <- function(f, y, error_range, log_flag){
+
+  # 3. The stepwise approach. Find formula candidates from the datasets.
+  formulae_all = list()
+  for(i in 1:nfold) {
+    formulae_all[[i]] = formula(step(lm(f, 
+                                         data=trains[[i]]), trace=F))
+  }
+  formulae = unique(formulae_all)
+  print(formulae)
 
 
-5) \textcolor{mycolor}{Linear lasso. We optimize the Linear regression with the $L_1$-norm penelty (lasso).}
-    ```{r, warning=FALSE}
-    acc_lasso = 1:nfold
-    for(i in 1:nfold) {
-      x = model.matrix(Overall~.-Overall, trains[[i]])[, -1]
-      y = trains[[i]]$Overall
-      cv.lasso <- cv.glmnet(x, y, alpha = 1, family = "gaussian")
-      fit.lasso = glmnet(x, y, alpha = 1, family = "gaussian",
-                         lambda = cv.lasso$lambda.min)
-      x.test = model.matrix(Overall~.-Overall, tests[[i]])[, -1]
+  # 4. Checking predictions for each model
+  acc = rep(0, length(formulae))
+  for(i in 1:nfold) {
+    for(model_i in 1:length(formulae)) {
+      fit.candidate = glm(formulae[[model_i]], 
+                          data= trains[[i]], family=gaussian)
+      tpredict = round(predict(fit.candidate, 
+                               newdata = tests[[i]], type='response'))
       
-      tpredict = round(predict(fit.lasso, newx=x.test,
-                               type='response'))
-      acc_lasso[i] = sum(diag(table(tests[[i]]$Overall, 
-                                          tpredict))) / nrow(tests[[i]])
+      # Calculate the Accuracy
+
+      # test <- tests[[i]]
+      # test$Predicted.Value <- tpredict
+      # new_data <- test[c("ValueNumeric_pounds","Predicted.Value")]
+      # # new_data$Value<- data.frame(tests[[i]]$ValueNumeric_pounds)
+
+      # new_data <- new_data %>%
+      #   mutate(Difference = ValueNumeric_pounds - Predicted.Value )
+      # new_data$Accuracy <- ifelse(new_data$Difference > 0.20 * new_data$ValueNumeric_pounds , 0, ifelse(new_data$Difference < -(0.20 * new_data$ValueNumeric_pounds),0, 1))
+      # #print(new_data$Accuracy)
+      # acc[model_i] = sum(new_data$Accuracy)/ dim(new_data)[[1]]
+      # print(acc[model_i])
+
+      # Return an accuracy on each time validataion 
+      # Parms: test data set, predicted value, Y
+      acc[model_i] = calculate_accuracy(tests[[i]], tpredict, y, error_range, log_flag)
     }
-    ```
+  }
+  best_model_idx = which.max(acc)
+  cat('Best model formula : ')
+  print(formulae[best_model_idx])
+  acc_final_model = 1:nfold
+  for(i in 1:nfold) {
+    fit.candidate = glm(formulae[[best_model_idx]], 
+                        data= trains[[i]], family=gaussian)
+    tpredict = round(predict(fit.candidate, newdata = tests[[i]],
+                     type='response'))
+    acc_final_model[i] = calculate_accuracy(tests[[i]], tpredict, y, error_range, log_flag)
+    # acc_final_model[i] = sum(diag(table(tests[[i]]$Overall, 
+    #                                     tpredict))) / nrow(tests[[i]])
+  }
+
+  return(acc_final_model)
+
+}
 
 
-
-6) \textcolor{mycolor}{Compare the accuracies among the full model, the stepwise model, and the Linear lasso.}
-    ```{r}
-    cat('Stepwise model average accuracy = ', 
-        sprintf('%.5f', mean(acc_final_model)), '\n')
-    cat('   Lasso model average accuracy = ',
-        sprintf('%.5f', mean(acc_lasso)), '\n')
-    cat('    Full model average accuracy = ', 
-        sprintf('%.5f', mean(acc_full)), '\n')
-
-    # stepwise model
-    plot(1:nfold, acc_final_model, "l", col="red",
-         xlab="splits", ylab="accuracy", 
-         main="stepwise model vs lasso model vs full model",
-         ylim=c(0, 1))
-    points(1:nfold, acc_final_model, col="red")
-    
-    # full model
-    lines(1:nfold, acc_full, col="blue", lty=2)
-    points(1:nfold, acc_full, col="blue")
-    
-    # lasso model
-    lines(1:nfold, acc_lasso, col="black", lty=3)
-    points(1:nfold, acc_lasso, col="black")
-    
-    legend('topright', legend=c('stepwise model', 'lasso model', 'full model'), 
-           col=c('red', 'black', 'blue'), lty=c(1, 3, 2), pch=10, cex=0.6)
+train_full_and_predict <- function(f, y, error_range, log_flag){
   
-    ```
+  # 1. Generate n-fold datasets:  Train and Test
+  trains = list()
+  tests = list()
+  for(i in 1:nfold) {
+    sample_idx = sample.int(n = nrow(mydata),
+                            size = floor(.80*nrow(mydata)),
+                            replace=F)
+    trains[[i]] = mydata[sample_idx, ]
+    tests[[i]] = mydata[-sample_idx,]
+  }
+
+  # 2. Compute the average accuracy of the full model over the splits. The full model is used as a baseline.
+  acc_full = 1:nfold
+  for(i in 1:nfold) {
+    fit.full = lm(f, data=trains[[i]])
+    tpredict = round(predict(fit.full, newdata = tests[[i]], type='response'))
+    acc_full[i] = calculate_accuracy(tests[[i]], tpredict, y, error_range, log_flag)
+    # acc_full[i] = sum(diag(table(tests[[i]]$y, 
+    #                              tpredict))) / nrow(tests[[i]])
+  }
+  return(acc_full)
+}
+
+acc_full_model_log<- train_full_and_predict(f_log, "log_ValueNumeric", 0.2, 1)
+
+acc_final_model_log <- train_stepwise_and_predict(f_log, "log_ValueNumeric", 0.2, 1)
+
+#stepwise_result
+```
+
+```{r}
+acc_full_model_log
+acc_final_model_log
+```
+
+
+
+
+New_code for Model without Log Transformation:
+```{r}
+#full_model_acc<- train_full_and_predict(f_log, "log_ValueNumeric", 0.2, 1))
+
+outcome1 <- "ValueNumeric_pounds"
+
+variables1 <- c(".", "log_ValueNumeric", "log_Wage", "log_Release")
+
+# our modeling effort, 
+# fully parameterized!
+f <- as.formula(
+  paste(outcome1, 
+        paste(variables1, collapse = "-"), 
+        sep = " ~ "))
+print(f)
+
+
+acc_full_model <- train_full_and_predict(f, "ValueNumeric_pounds", 0.2, 0)
+acc_final_model <- train_stepwise_and_predict(f, "ValueNumeric_pounds", 0.2, 0)
+
+```
+
+```{r}
+acc_full_model
+acc_final_model  
+```
+
+
+
+Regularization
+```{r}
+library(glmnet)
+
+train_regularization_and_predict <- function(f, y, error_range, log_flag, alpha){
+    acc_reg = 1:nfold
+    if (log_flag == 1){
+      print("Log Transformation")
+    }
+    for(i in 1:nfold) {
+      x = model.matrix(f, trains[[i]])[, -1]
+      if (y=="ValueNumeric_pounds"){
+        train_y = trains[[i]]$ValueNumeric_pounds
+      }
+      else{
+        train_y = trains[[i]]$log_ValueNumeric
+      }
+      
+      cv.reg <- cv.glmnet(x, train_y, alpha = alpha, family = "gaussian")
+      fit.reg = glmnet(x, train_y, alpha = alpha, family = "gaussian",
+                         lambda = cv.reg$lambda.min)
+      x.test = model.matrix(f, tests[[i]])[, -1]
+      
+      if (alpha == 1){
+        lasso_coef = predict(fit.reg, type = "coefficients", s = cv.reg$lambda.min)[1:42,]
+        print(i)
+        print(lasso_coef[lasso_coef != 0])
+      }
+      
+      tpredict = round(predict(fit.reg, newx=x.test,
+                               type='response'))
+      acc_reg[i] = calculate_accuracy(tests[[i]], tpredict, y, error_range, log_flag)
+    }
+    return(acc_reg)
+}
+
+acc_lasso_model <- train_regularization_and_predict(f, "ValueNumeric_pounds", 0.2, 0, 1)
+acc_lasso_model_log <- train_regularization_and_predict(f_log, "log_ValueNumeric", 0.2, 1, 1)
+
+acc_ridge_model <- train_regularization_and_predict(f, "ValueNumeric_pounds", 0.2, 0, 0)
+acc_ridge_model_log <- train_regularization_and_predict(f_log, "log_ValueNumeric", 0.2, 1, 0)
+
+acc_elastic_net_model <- train_regularization_and_predict(f, "ValueNumeric_pounds", 0.2, 0, 0.5)
+acc_elastic_net_model_log <- train_regularization_and_predict(f_log, "log_ValueNumeric", 0.2, 1, 0.5)
+
+
+```
+
+
+```{r}
+acc_lasso_model
+acc_ridge_model
+acc_elastic_net_model
+
+acc_lasso_model_log
+acc_ridge_model_log
+acc_elastic_net_model_log
+
+```
+
+
+
+```{r, fig.height=5, fig.width=8}
+
+plot_func <- function(acc_full_model, acc_final_model, acc_lasso_model, acc_ridge_model,  acc_elastic_net_model, log_flag){
+  if (log_flag == 1){
+    print("With Log Transformation")
+  }
+  else(
+    print("Without Log Transformation")
+  )
+  cat('Stepwise model average accuracy = ', 
+      sprintf('%.5f', mean(acc_final_model)), '\n')
+  cat('Lasso model average accuracy = ', 
+      sprintf('%.5f', mean(acc_lasso_model)), '\n')
+  cat('Ridge model average accuracy = ', 
+      sprintf('%.5f', mean(acc_ridge_model)), '\n')
+  cat('Elastic net model average accuracy = ',
+      sprintf('%.5f', mean(acc_elastic_net_model)), '\n')
+  cat('Full model average accuracy = ', 
+      sprintf('%.5f', mean(acc_full_model)), '\n')
+
+  # stepwise model
+  if (log_flag == 1){
+    plot(1:nfold, acc_final_model, "l", col="black", lty =2,
+         xlab="splits", ylab="accuracy", 
+         main="Log Transformation stepwise model vs lasso model vs full model vs ridge vs elastic net",
+         ylim=c(0, 1))
+    points(1:nfold, acc_final_model, col="black")
+  }
+  else {
+    plot(1:nfold, acc_final_model, "l", col="black", lty =2,
+        xlab="splits", ylab="accuracy", 
+        main="stepwise model vs lasso model vs full model vs ridge vs elastic net",
+        ylim=c(0, 1))
+    points(1:nfold, acc_final_model, col="black")
+  }
+  # full model
+  lines(1:nfold, acc_full_model, col="blue", lty=3)
+  points(1:nfold, acc_full_model, col="blue")
+  
+  # lasso model
+  lines(1:nfold, acc_lasso_model, col="red", lty=1)
+  points(1:nfold, acc_lasso_model, col="red")
+  
+  
+  # ridge model
+  lines(1:nfold, acc_ridge_model, col="green", lty=4)
+  points(1:nfold, acc_ridge_model, col="green")
+  
+  # elastic net model
+  lines(1:nfold, acc_elastic_net_model, col="orange", lty=5)
+  points(1:nfold, acc_elastic_net_model, col="orange")
+  
+  
+  legend('topright', legend=c('stepwise', 'lasso', 'full', 'ridge', 'elastic net'), 
+         col=c('black', 'red', 'blue', 'green', 'orange'), lty=c(2, 1, 3, 4, 5), pch=10, cex=0.6)
+
+}
+
+
+plot_func(acc_full_model, acc_final_model, acc_lasso_model, acc_ridge_model,  acc_elastic_net_model, 0)
+
+plot_func(acc_full_model_log, acc_final_model_log, acc_lasso_model_log, acc_ridge_model_log,  acc_elastic_net_model_log, 1)
+```
+
+
+
+Final model:
+```{r}
+fit_final_lasso_model <- lm(ValueNumeric_pounds ~ Overall +  International.Reputation + Volleys + Reactions + Stamina + WageNumeric_pounds + Release.Clause_pounds, data=fifa_final_log)
+summary(fit_final_lasso_model)
+plot(fit_final_lasso_model)
+```
+
+
+
+--- Sunhao END -----
+
+-----Jung ----------
+Jung please add your comments to this. :)
+Jung's explanation on why 1, 2 and 16 are outliers.
+
+
+
+
+
+
+
+
+
 
 
 
